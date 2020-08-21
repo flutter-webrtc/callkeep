@@ -103,7 +103,7 @@ class _MyAppState extends State<HomePage> {
     print(
         '[didPerformSetMutedCallAction] ${event.callUUID}, number: $number (${event.muted})');
 
-    //setCallMuted(event.callUUID, event.muted);
+    setCallMuted(event.callUUID, event.muted);
   }
 
   Future<void> didToggleHoldCallAction(
