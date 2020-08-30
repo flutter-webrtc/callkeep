@@ -598,7 +598,7 @@ contactIdentifier:(NSString * _Nullable)contactIdentifier
 
 + (BOOL)application:(UIApplication *)application
 continueUserActivity:(NSUserActivity *)userActivity
- restorationHandler:(void(^)(NSArray * __nullable restorableObjects))restorationHandler
+ restorationHandler:(void(^)(NSArray<id<UIUserActivityRestoring>> * __nullable restorableObjects))restorationHandler
 {
 #ifdef DEBUG
     NSLog(@"[CallKeep][application:continueUserActivity]");

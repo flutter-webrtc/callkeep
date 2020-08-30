@@ -27,7 +27,7 @@
 
 + (BOOL)application:(UIApplication *)application
 continueUserActivity:(NSUserActivity *)userActivity
-  restorationHandler:(void(^)(NSArray * __nullable restorableObjects))restorationHandler;
+  restorationHandler:(void(^)(NSArray<id<UIUserActivityRestoring>> * __nullable restorableObjects))restorationHandler;
 
 + (void)reportNewIncomingCall:(NSString *)uuidString
                        handle:(NSString *)handle
