@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
+import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.EventChannel;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodCall;
@@ -87,13 +88,18 @@ public class CallKeepModule {
     Activity _currentActivity = null;
     MethodChannel _eventChannel;
 
-    public CallKeepModule(Context context, FlutterPlugin.FlutterPluginBinding binding) {
+    public CallKeepModule(Context context, BinaryMessenger messenger) {
         this._context = context;
-        this._eventChannel = new MethodChannel(binding.getBinaryMessenger(), "FlutterCallKeep.Event");
+        this._eventChannel = new MethodChannel(messenger, "FlutterCallKeep.Event");
     }
 
     public void setActivity(Activity activity) {
         this._currentActivity = activity;
+    }
+
+    public void dispose(){
+        LocalBroadcastManager.getInstance(this._context).unregisterReceiver(voiceBroadcastReceiver);
+        VoiceConnectionService.setPhoneAccountHandle(null);
     }
 
     public boolean HandleMethodCall(@NonNull MethodCall call, @NonNull Result result) {
