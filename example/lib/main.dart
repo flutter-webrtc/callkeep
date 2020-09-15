@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import 'package:flutter_callkeep/flutter_callkeep.dart';
+import 'package:callkeep/callkeep.dart';
 import 'package:uuid/uuid.dart';
 
 void main() {

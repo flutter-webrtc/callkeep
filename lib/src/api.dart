@@ -11,8 +11,8 @@ import 'package:flutter/material.dart'
         Text,
         Widget;
 import 'package:flutter/services.dart' show MethodChannel;
-import 'package:flutter_callkeep/src/actions.dart';
 
+import 'actions.dart';
 import 'event.dart';
 
 bool get isIOS => Platform.isIOS;
@@ -64,8 +64,8 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<void> _hasDefaultPhoneAccount(Map<String, dynamic> options) async {
-    final bool hasDefault = await _checkDefaultPhoneAccount();
-    final bool shouldOpenAccounts = await _alert(options, hasDefault);
+    final hasDefault = await _checkDefaultPhoneAccount();
+    final shouldOpenAccounts = await _alert(options, hasDefault);
     if (shouldOpenAccounts) {
       await _openPhoneAccounts();
     }
@@ -269,9 +269,9 @@ class FlutterCallkeep extends EventManager {
 
   Future<bool> _setupAndroid(Map<String, dynamic> options) async {
     await _channel.invokeMethod<void>('setup', {'options': options});
-    final bool showAccountAlert = await _checkPhoneAccountPermission(
+    final showAccountAlert = await _checkPhoneAccountPermission(
         options['additionalPermissions'] as List<String> ?? <String>[]);
-    final bool shouldOpenAccounts = await _alert(options, showAccountAlert);
+    final shouldOpenAccounts = await _alert(options, showAccountAlert);
 
     if (shouldOpenAccounts) {
       await _openPhoneAccounts();
