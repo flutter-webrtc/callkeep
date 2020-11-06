@@ -63,11 +63,12 @@ import io.wazo.callkeep.utils.Callback;
 import io.wazo.callkeep.utils.ConstraintsMap;
 import io.wazo.callkeep.utils.ConstraintsArray;
 import io.wazo.callkeep.utils.PermissionUtils;
+import io.wazo.callkeep.utils.AnyThreadSink;
 
 import static io.wazo.callkeep.Constants.*;
 
 // @see https://github.com/kbagchiGWC/voice-quickstart-android/blob/9a2aff7fbe0d0a5ae9457b48e9ad408740dfb968/exampleConnectionService/src/main/java/com/twilio/voice/examples/connectionservice/VoiceConnectionServiceActivity.java
-public class CallKeepModule {
+public class CallKeepModule implements EventChannel.StreamHandler {
     public static final int REQUEST_READ_PHONE_STATE = 1337;
     public static final int REQUEST_REGISTER_CALL_PROVIDER = 394859;
 
@@ -86,11 +87,14 @@ public class CallKeepModule {
     private VoiceBroadcastReceiver voiceBroadcastReceiver;
     private ConstraintsMap _settings;
     Activity _currentActivity = null;
-    MethodChannel _eventChannel;
+    BinaryMessenger _messenger;
+    private EventChannel eventChannel = null;
+    private EventChannel.EventSink eventSink = null;
+    private String _id;
 
     public CallKeepModule(Context context, BinaryMessenger messenger) {
+        _messenger = messenger;
         this._context = context;
-        this._eventChannel = new MethodChannel(messenger, "FlutterCallKeep.Event");
     }
 
     public void setActivity(Activity activity) {
@@ -100,6 +104,16 @@ public class CallKeepModule {
     public void dispose(){
         LocalBroadcastManager.getInstance(this._context).unregisterReceiver(voiceBroadcastReceiver);
         VoiceConnectionService.setPhoneAccountHandle(null);
+    }
+
+    @Override
+    public void onListen(Object arguments, EventChannel.EventSink events) {
+        eventSink = new AnyThreadSink(events);
+    }
+
+    @Override
+    public void onCancel(Object arguments) {
+        eventSink = null;
     }
 
     public boolean HandleMethodCall(@NonNull MethodCall call, @NonNull Result result) {
@@ -217,6 +231,14 @@ public class CallKeepModule {
     public void setup(ConstraintsMap options) {
         VoiceConnectionService.setAvailable(false);
         this._settings = options;
+
+        if(eventChannel == null) {
+            _id = options.getString("id");
+            Log.d(TAG, "setup event channel: " + "FlutterCallKeep.Event/channel" + _id);
+            eventChannel =
+                    new EventChannel(_messenger, "FlutterCallKeep.Event/channel" + _id);
+            eventChannel.setStreamHandler(this);
+        }
 
         if (isConnectionServiceAvailable()) {
             this.registerPhoneAccount();
@@ -598,7 +620,12 @@ public class CallKeepModule {
     }
 
     private void sendEventToFlutter(String eventName, @Nullable ConstraintsMap params) {
-        _eventChannel.invokeMethod(eventName, params != null? params.toMap() : null);
+        ConstraintsMap event = new ConstraintsMap();
+        event.putString("event", eventName);
+        event.putMap("data", params.toMap());
+        if(eventSink != null) {
+            eventSink.success(event.toMap());
+        }
     }
 
     private String getApplicationName(Context appContext) {
@@ -735,10 +762,10 @@ public class CallKeepModule {
                     sendEventToFlutter("CallKeepDidReceiveStartCallAction", args);
                     break;
                 case ACTION_AUDIO_SESSION:
-                    sendEventToFlutter("CallKeepDidActivateAudioSession", null);
+                    sendEventToFlutter("CallKeepDidActivateAudioSession", args);
                     break;
                 case ACTION_CHECK_REACHABILITY:
-                    sendEventToFlutter("CallKeepCheckReachability", null);
+                    sendEventToFlutter("CallKeepCheckReachability", args);
                     break;
                 case ACTION_WAKE_APP:
                     Intent headlessIntent = new Intent(_context, CallKeepBackgroundMessagingService.class);

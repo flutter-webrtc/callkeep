@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart'
     show
@@ -20,18 +21,35 @@ bool get supportConnectionService =>
     !isIOS && int.parse(Platform.version) >= 23;
 
 class FlutterCallkeep extends EventManager {
-  FlutterCallkeep() {
-    _event.setMethodCallHandler(eventListener);
-  }
+  FlutterCallkeep();
+  static final _random = Random();
+  final _id = _random.nextInt(0x7FFFFFFF);
   BuildContext _context;
   static const MethodChannel _channel = MethodChannel('FlutterCallKeep.Method');
-  static const MethodChannel _event = MethodChannel('FlutterCallKeep.Event');
+  StreamSubscription<dynamic> _eventSubscription;
+
+  EventChannel _eventChannelFor(int id) {
+    return EventChannel('FlutterCallKeep.Event/channel$id');
+  }
+
+  void errorListener(Object obj) {
+    final PlatformException e = obj;
+    throw e;
+  }
 
   Future<void> setup(Map<String, dynamic> options) async {
     if (!isIOS) {
-      return _setupAndroid(options['android'] as Map<String, dynamic>);
+      await _setupAndroid(options['android'] as Map<String, dynamic>);
     }
-    return _setupIOS(options['ios'] as Map<String, dynamic>);
+    await _setupIOS(options['ios'] as Map<String, dynamic>);
+
+    _eventSubscription ??= _eventChannelFor(_id)
+        .receiveBroadcastStream()
+        .listen(eventListener, onError: errorListener);
+  }
+
+  Future<void> cloes() async {
+    await _eventSubscription.cancel();
   }
 
   Future<void> registerPhoneAccount() async {
@@ -256,6 +274,7 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<void> _setupIOS(Map<String, dynamic> options) async {
+    options['id'] = '001';
     if (options['appName'] == null) {
       throw Exception('CallKeep.setup: option "appName" is required');
     }
@@ -268,6 +287,7 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<bool> _setupAndroid(Map<String, dynamic> options) async {
+    options['id'] = '$_id';
     await _channel.invokeMethod<void>('setup', {'options': options});
     final showAccountAlert = await _checkPhoneAccountPermission(
         options['additionalPermissions'] as List<String> ?? <String>[]);
@@ -334,20 +354,20 @@ class FlutterCallkeep extends EventManager {
     );
   }
 
-  Future<void> eventListener(MethodCall call) async {
-    print('[CallKeep] INFO: received event "${call.method}" ${call.arguments}');
-    switch (call.method) {
+  void eventListener(dynamic payload) {
+    final map = payload as Map<dynamic, dynamic>;
+    final String event = map['event'];
+    final Map<dynamic, dynamic> data = map['data'];
+    //print('CallKeep event received [event-channel: $_id]: "$event" => $data');
+    switch (event) {
       case 'CallKeepDidReceiveStartCallAction':
-        emit(CallKeepDidReceiveStartCallAction.fromMap(
-            call.arguments as Map<dynamic, dynamic>));
+        emit(CallKeepDidReceiveStartCallAction.fromMap(data));
         break;
       case 'CallKeepPerformAnswerCallAction':
-        emit(CallKeepPerformAnswerCallAction.fromMap(
-            call.arguments as Map<dynamic, dynamic>));
+        emit(CallKeepPerformAnswerCallAction.fromMap(data));
         break;
       case 'CallKeepPerformEndCallAction':
-        emit(CallKeepPerformEndCallAction.fromMap(
-            call.arguments as Map<dynamic, dynamic>));
+        emit(CallKeepPerformEndCallAction.fromMap(data));
         break;
       case 'CallKeepDidActivateAudioSession':
         emit(CallKeepDidActivateAudioSession());
@@ -356,20 +376,16 @@ class FlutterCallkeep extends EventManager {
         emit(CallKeepDidActivateAudioSession());
         break;
       case 'CallKeepDidDisplayIncomingCall':
-        emit(CallKeepDidDisplayIncomingCall.fromMap(
-            call.arguments as Map<dynamic, dynamic>));
+        emit(CallKeepDidDisplayIncomingCall.fromMap(data));
         break;
       case 'CallKeepDidPerformSetMutedCallAction':
-        emit(CallKeepDidPerformSetMutedCallAction.fromMap(
-            call.arguments as Map<dynamic, dynamic>));
+        emit(CallKeepDidPerformSetMutedCallAction.fromMap(data));
         break;
       case 'CallKeepDidToggleHoldAction':
-        emit(CallKeepDidToggleHoldAction.fromMap(
-            call.arguments as Map<dynamic, dynamic>));
+        emit(CallKeepDidToggleHoldAction.fromMap(data));
         break;
       case 'CallKeepDidPerformDTMFAction':
-        emit(CallKeepDidPerformDTMFAction.fromMap(
-            call.arguments as Map<dynamic, dynamic>));
+        emit(CallKeepDidPerformDTMFAction.fromMap(data));
         break;
       case 'CallKeepProviderReset':
         emit(CallKeepProviderReset());

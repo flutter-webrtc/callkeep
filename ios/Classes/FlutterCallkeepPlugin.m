@@ -39,9 +39,12 @@ static id _instance;
 #endif
     if (self = [super init]) {
         _callKeep = [CallKeep allocWithZone: nil];
-        _callKeep.eventChannel = [FlutterMethodChannel
-                                  methodChannelWithName:@"FlutterCallKeep.Event"
-                                  binaryMessenger:[registrar messenger]];
+        FlutterEventChannel *eventChannel = [FlutterEventChannel
+                                             eventChannelWithName:@"FlutterCallKeep.Event/channel001"
+                                             binaryMessenger:[registrar messenger]];
+        
+        _callKeep.eventChannel = eventChannel;
+        [eventChannel setStreamHandler:_callKeep];
     }
     return self;
 }

@@ -36,14 +36,24 @@ static NSString *const CallKeepDidLoadWithEvents = @"CallKeepDidLoadWithEvents";
     NSMutableArray *_delayedEvents;
 }
 
-- (FlutterMethodChannel *)eventChannel
+- (FlutterEventChannel *)eventChannel
 {
     return objc_getAssociatedObject(self, _cmd);
 }
 
-- (void)setEventChannel:(FlutterMethodChannel *)eventChannel
+- (void)setEventChannel:(FlutterEventChannel *)eventChannel
 {
     objc_setAssociatedObject(self, @selector(eventChannel), eventChannel, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (FlutterEventSink )eventSink
+{
+    return objc_getAssociatedObject(self, _cmd);
+}
+
+- (void)setEventSink:(FlutterEventSink)eventSink
+{
+    objc_setAssociatedObject(self, @selector(eventSink), eventSink, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 static CXProvider* sharedProvider;
@@ -67,6 +77,20 @@ static CXProvider* sharedProvider;
     });
     return sharedInstance;
 }
+
+#pragma mark - FlutterStreamHandler methods
+
+- (FlutterError* _Nullable)onCancelWithArguments:(id _Nullable)arguments {
+    self.eventSink = nil;
+    return nil;
+}
+
+- (FlutterError* _Nullable)onListenWithArguments:(id _Nullable)arguments
+                                       eventSink:(nonnull FlutterEventSink)sink {
+    self.eventSink = sink;
+    return nil;
+}
+@end
 
 - (void)dealloc
 {
@@ -161,16 +185,17 @@ static CXProvider* sharedProvider;
     _hasListeners = FALSE;
 }
 
-- (void)sendEventWithName:(NSString *)name body:(id)body {
-    [self.eventChannel invokeMethod:name arguments:body];
+- (void)sendEventWithName:(NSString *)eventName body:(id)body {
+    FlutterEventSink eventSink = channel.eventSink;
+    if(eventSink) {
+        eventSink(@{ @"event" : eventName,
+                     @"data": body
+                     });
+    }
 }
 
 - (void)sendEventWithNameWrapper:(NSString *)name body:(id)body {
-    if (_hasListeners) {
-        [self sendEventWithName:name body:body];
-    } else {
-        [self.eventChannel invokeMethod:name arguments:body];
-    }
+    [self sendEventWithName:name body:body];
 }
 
 + (void)initCallKitProvider {

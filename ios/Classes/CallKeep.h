@@ -13,11 +13,10 @@
 //#import <AVFoundation/AVAudioSession.h>
 
 @interface CallKeep: NSObject<FlutterStreamHandler, CXProviderDelegate>
-
-@property (nonatomic, strong) FlutterMethodChannel* eventChannel;
 @property (nonatomic, strong) CXCallController *callKeepCallController;
 @property (nonatomic, strong) CXProvider *callKeepProvider;
-
+@property (nonatomic, strong, nullable) FlutterEventSink eventSink;
+@property (nonatomic, strong, nullable) FlutterEventChannel *eventChannel;
 
 - (BOOL)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result;
 
