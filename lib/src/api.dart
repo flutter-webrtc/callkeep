@@ -274,7 +274,7 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<void> _setupIOS(Map<String, dynamic> options) async {
-    options['id'] = '001';
+    options['id'] = '$_id';
     if (options['appName'] == null) {
       throw Exception('CallKeep.setup: option "appName" is required');
     }

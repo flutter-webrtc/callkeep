@@ -176,9 +176,19 @@ class _MyAppState extends State<HomePage> {
         handleType: 'number', hasVideo: false);
   }
 
+  void didDisplayIncomingCall(CallKeepDidDisplayIncomingCall event) {
+    var callUUID = event.callUUID;
+    var number = event.handle;
+    print('[displayIncomingCall] $callUUID number: $number');
+    setState(() {
+      calls[callUUID] = Call(number);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
+    _callKeep.on(CallKeepDidDisplayIncomingCall(), didDisplayIncomingCall);
     _callKeep.on(CallKeepPerformAnswerCallAction(), answerCall);
     _callKeep.on(CallKeepDidPerformDTMFAction(), didPerformDTMFAction);
     _callKeep.on(

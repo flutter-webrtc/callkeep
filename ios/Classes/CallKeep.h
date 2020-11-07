@@ -10,44 +10,44 @@
 #import <UIKit/UIKit.h>
 #import <CallKit/CallKit.h>
 #import <Intents/Intents.h>
-//#import <AVFoundation/AVAudioSession.h>
 
 @interface CallKeep: NSObject<FlutterStreamHandler, CXProviderDelegate>
-@property (nonatomic, strong) CXCallController *callKeepCallController;
-@property (nonatomic, strong) CXProvider *callKeepProvider;
+@property (nonatomic, strong, nullable) CXCallController *callKeepCallController;
+@property (nonatomic, strong, nullable) CXProvider *callKeepProvider;
 @property (nonatomic, strong, nullable) FlutterEventSink eventSink;
 @property (nonatomic, strong, nullable) FlutterEventChannel *eventChannel;
+@property (nonatomic, strong, nullable) NSObject<FlutterBinaryMessenger>* messenger;
 
-- (BOOL)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result;
+- (BOOL)handleMethodCall:(FlutterMethodCall* _Nonnull)call result:(FlutterResult _Nonnull )result;
 
-+ (BOOL)application:(UIApplication *)application
-            openURL:(NSURL *)url
-            options:(NSDictionary<UIApplicationOpenURLOptionsKey, id> *)options NS_AVAILABLE_IOS(9_0);
++ (BOOL)application:(UIApplication * _Nonnull)application
+            openURL:(NSURL * _Nonnull)url
+            options:(NSDictionary<UIApplicationOpenURLOptionsKey, id> * _Nonnull)options NS_AVAILABLE_IOS(9_0);
 
-+ (BOOL)application:(UIApplication *)application
-continueUserActivity:(NSUserActivity *)userActivity
-  restorationHandler:(void(^)(NSArray<id<UIUserActivityRestoring>> * __nullable restorableObjects))restorationHandler;
++ (BOOL)application:(UIApplication * _Nonnull)application
+continueUserActivity:(NSUserActivity * _Nonnull)userActivity
+  restorationHandler:(void(^ _Nonnull)(NSArray<id<UIUserActivityRestoring>> * __nullable restorableObjects))restorationHandler;
 
-+ (void)reportNewIncomingCall:(NSString *)uuidString
-                       handle:(NSString *)handle
-                   handleType:(NSString *)handleType
++ (void)reportNewIncomingCall:(NSString * _Nonnull)uuidString
+                       handle:(NSString * _Nonnull)handle
+                   handleType:(NSString * _Nonnull)handleType
                      hasVideo:(BOOL)hasVideo
           localizedCallerName:(NSString * _Nullable)localizedCallerName
                   fromPushKit:(BOOL)fromPushKit
                       payload:(NSDictionary * _Nullable)payload;
 
-+ (void)reportNewIncomingCall:(NSString *)uuidString
-                       handle:(NSString *)handle
-                   handleType:(NSString *)handleType
++ (void)reportNewIncomingCall:(NSString * _Nonnull)uuidString
+                       handle:(NSString * _Nonnull)handle
+                   handleType:(NSString * _Nonnull)handleType
                      hasVideo:(BOOL)hasVideo
           localizedCallerName:(NSString * _Nullable)localizedCallerName
                   fromPushKit:(BOOL)fromPushKit
                       payload:(NSDictionary * _Nullable)payload
         withCompletionHandler:(void (^_Nullable)(void))completion;
 
-+ (void)endCallWithUUID:(NSString *)uuidString
++ (void)endCallWithUUID:(NSString * _Nonnull)uuidString
                  reason:(int)reason;
 
-+ (BOOL)isCallActive:(NSString *)uuidString;
++ (BOOL)isCallActive:(NSString * _Nonnull)uuidString;
 
 @end

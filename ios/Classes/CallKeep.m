@@ -6,14 +6,9 @@
 //  SPDX-License-Identifier: ISC, MIT
 //
 #import <objc/runtime.h>
-#import "CallKeep.h"
-#import <AVFoundation/AVAudioSession.h>
 
-#ifdef DEBUG
-static int const OUTGOING_CALL_WAKEUP_DELAY = 10;
-#else
-static int const OUTGOING_CALL_WAKEUP_DELAY = 5;
-#endif
+#import "CallKeep.h"
+#import <AVFoundation/AVFoundation.h>
 
 static NSString *const CallKeepHandleStartCallNotification = @"CallKeepHandleStartCallNotification";
 static NSString *const CallKeepDidReceiveStartCallAction = @"CallKeepDidReceiveStartCallAction";
@@ -56,6 +51,16 @@ static NSString *const CallKeepDidLoadWithEvents = @"CallKeepDidLoadWithEvents";
     objc_setAssociatedObject(self, @selector(eventSink), eventSink, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
+- (NSObject<FlutterBinaryMessenger>*)messenger
+{
+    return objc_getAssociatedObject(self, _cmd);
+}
+
+- (void)setMessenger:(NSObject<FlutterBinaryMessenger>*)messenger
+{
+    objc_setAssociatedObject(self, @selector(messenger), messenger, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
 static CXProvider* sharedProvider;
 
 - (instancetype)init
@@ -90,7 +95,6 @@ static CXProvider* sharedProvider;
     self.eventSink = sink;
     return nil;
 }
-@end
 
 - (void)dealloc
 {
@@ -186,7 +190,7 @@ static CXProvider* sharedProvider;
 }
 
 - (void)sendEventWithName:(NSString *)eventName body:(id)body {
-    FlutterEventSink eventSink = channel.eventSink;
+    FlutterEventSink eventSink = self.eventSink;
     if(eventSink) {
         eventSink(@{ @"event" : eventName,
                      @"data": body
@@ -221,6 +225,14 @@ static CXProvider* sharedProvider;
     
     self.callKeepProvider = sharedProvider;
     [self.callKeepProvider setDelegate:self queue:nil];
+    
+    NSString *Id =  (NSString *)options[@"id"];
+    
+    FlutterEventChannel *eventChannel = [FlutterEventChannel
+                                         eventChannelWithName: [NSString stringWithFormat:@"FlutterCallKeep.Event/channel%@", Id]
+                                         binaryMessenger:self.messenger];
+    self.eventChannel = eventChannel;
+    [eventChannel setStreamHandler:self];
 }
 
 -(void) checkIfBusyWithResult:(FlutterResult)result
@@ -488,8 +500,8 @@ contactIdentifier:(NSString * _Nullable)contactIdentifier
             @"callUUID": uuidString,
             @"handle": handle,
             @"localizedCallerName": localizedCallerName ? localizedCallerName : @"",
-            @"hasVideo": hasVideo ? @"1" : @"0",
-            @"fromPushKit": fromPushKit ? @"1" : @"0",
+            @"hasVideo": @(hasVideo),
+            @"fromPushKit": @(fromPushKit),
             @"payload": payload ? payload : @"",
         }];
         if (error == nil) {
@@ -698,7 +710,7 @@ continueUserActivity:(NSUserActivity *)userActivity
 #endif
     //this means something big changed, so tell the JS. The JS should
     //probably respond by hanging up all calls.
-    [self sendEventWithNameWrapper:CallKeepProviderReset body:nil];
+    [self sendEventWithNameWrapper:CallKeepProviderReset body:@{}];
 }
 
 // Starting outgoing call
@@ -719,7 +731,7 @@ continueUserActivity:(NSUserActivity *)userActivity
 -(void) reportUpdatedCall:(NSString *)uuidString contactIdentifier:(NSString *)contactIdentifier
 {
 #ifdef DEBUG
-    NSLog(@"[CallKeep][reportUpdatedCall] contactIdentifier = %i", contactIdentifier);
+    NSLog(@"[CallKeep][reportUpdatedCall] contactIdentifier = %@", contactIdentifier);
 #endif
     NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:uuidString];
     CXCallUpdate *callUpdate = [[CXCallUpdate alloc] init];
@@ -797,7 +809,7 @@ continueUserActivity:(NSUserActivity *)userActivity
     [[NSNotificationCenter defaultCenter] postNotificationName:AVAudioSessionInterruptionNotification object:nil userInfo:userInfo];
     
     [self configureAudioSession];
-    [self sendEventWithNameWrapper:CallKeepDidActivateAudioSession body:nil];
+    [self sendEventWithNameWrapper:CallKeepDidActivateAudioSession body:@{}];
 }
 
 - (void)provider:(CXProvider *)provider didDeactivateAudioSession:(AVAudioSession *)audioSession
@@ -805,7 +817,7 @@ continueUserActivity:(NSUserActivity *)userActivity
 #ifdef DEBUG
     NSLog(@"[CallKeep][CXProviderDelegate][provider:didDeactivateAudioSession]");
 #endif
-    [self sendEventWithNameWrapper:CallKeepDidDeactivateAudioSession body:nil];
+    [self sendEventWithNameWrapper:CallKeepDidDeactivateAudioSession body:@{}];
 }
 
 @end
