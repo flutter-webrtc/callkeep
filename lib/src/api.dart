@@ -48,7 +48,7 @@ class FlutterCallkeep extends EventManager {
         .listen(eventListener, onError: errorListener);
   }
 
-  Future<void> cloes() async {
+  Future<void> close() async {
     await _eventSubscription.cancel();
   }
 
