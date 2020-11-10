@@ -6,9 +6,9 @@
 //  SPDX-License-Identifier: ISC, MIT
 //
 #import <objc/runtime.h>
+#import <AVFoundation/AVFoundation.h>
 
 #import "CallKeep.h"
-#import <AVFoundation/AVFoundation.h>
 
 static NSString *const CallKeepHandleStartCallNotification = @"CallKeepHandleStartCallNotification";
 static NSString *const CallKeepDidReceiveStartCallAction = @"CallKeepDidReceiveStartCallAction";
@@ -23,6 +23,7 @@ static NSString *const CallKeepDidToggleHoldAction = @"CallKeepDidToggleHoldActi
 static NSString *const CallKeepProviderReset = @"CallKeepProviderReset";
 static NSString *const CallKeepCheckReachability = @"CallKeepCheckReachability";
 static NSString *const CallKeepDidLoadWithEvents = @"CallKeepDidLoadWithEvents";
+static NSString *const CallKeepPushKitToken = @"CallKeepPushKitToken";
 
 @implementation CallKeep
 {
@@ -31,34 +32,14 @@ static NSString *const CallKeepDidLoadWithEvents = @"CallKeepDidLoadWithEvents";
     NSMutableArray *_delayedEvents;
 }
 
-- (FlutterEventChannel *)eventChannel
+- (FlutterMethodChannel *)eventChannel
 {
     return objc_getAssociatedObject(self, _cmd);
 }
 
-- (void)setEventChannel:(FlutterEventChannel *)eventChannel
+- (void)setEventChannel:(FlutterMethodChannel *)eventChannel
 {
     objc_setAssociatedObject(self, @selector(eventChannel), eventChannel, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-}
-
-- (FlutterEventSink )eventSink
-{
-    return objc_getAssociatedObject(self, _cmd);
-}
-
-- (void)setEventSink:(FlutterEventSink)eventSink
-{
-    objc_setAssociatedObject(self, @selector(eventSink), eventSink, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-}
-
-- (NSObject<FlutterBinaryMessenger>*)messenger
-{
-    return objc_getAssociatedObject(self, _cmd);
-}
-
-- (void)setMessenger:(NSObject<FlutterBinaryMessenger>*)messenger
-{
-    objc_setAssociatedObject(self, @selector(messenger), messenger, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 static CXProvider* sharedProvider;
@@ -81,19 +62,6 @@ static CXProvider* sharedProvider;
         sharedInstance = [super allocWithZone:zone];
     });
     return sharedInstance;
-}
-
-#pragma mark - FlutterStreamHandler methods
-
-- (FlutterError* _Nullable)onCancelWithArguments:(id _Nullable)arguments {
-    self.eventSink = nil;
-    return nil;
-}
-
-- (FlutterError* _Nullable)onListenWithArguments:(id _Nullable)arguments
-                                       eventSink:(nonnull FlutterEventSink)sink {
-    self.eventSink = sink;
-    return nil;
 }
 
 - (void)dealloc
@@ -189,13 +157,8 @@ static CXProvider* sharedProvider;
     _hasListeners = FALSE;
 }
 
-- (void)sendEventWithName:(NSString *)eventName body:(id)body {
-    FlutterEventSink eventSink = self.eventSink;
-    if(eventSink) {
-        eventSink(@{ @"event" : eventName,
-                     @"data": body
-                     });
-    }
+- (void)sendEventWithName:(NSString *)name body:(id)body {
+   [self.eventChannel invokeMethod:name arguments:body];
 }
 
 - (void)sendEventWithNameWrapper:(NSString *)name body:(id)body {
@@ -225,15 +188,61 @@ static CXProvider* sharedProvider;
     
     self.callKeepProvider = sharedProvider;
     [self.callKeepProvider setDelegate:self queue:nil];
-    
-    NSString *Id =  (NSString *)options[@"id"];
-    
-    FlutterEventChannel *eventChannel = [FlutterEventChannel
-                                         eventChannelWithName: [NSString stringWithFormat:@"FlutterCallKeep.Event/channel%@", Id]
-                                         binaryMessenger:self.messenger];
-    self.eventChannel = eventChannel;
-    [eventChannel setStreamHandler:self];
+    [self voipRegistration];
 }
+
+#pragma mark - PushKit
+
+-(void)voipRegistration
+{
+    PKPushRegistry* voipRegistry = [[PKPushRegistry alloc] initWithQueue:dispatch_get_main_queue()];
+    voipRegistry.delegate = self;
+    voipRegistry.desiredPushTypes = [NSSet setWithObject:PKPushTypeVoIP];
+}
+
+- (void)pushRegistry:(PKPushRegistry *)registry didUpdatePushCredentials:(PKPushCredentials *)pushCredentials forType:(PKPushType)type {
+    const unsigned *tokenBytes = [pushCredentials.token bytes];
+    NSString *hexToken = [NSString stringWithFormat:@"%08x%08x%08x%08x%08x%08x%08x%08x",
+                      ntohl(tokenBytes[0]), ntohl(tokenBytes[1]), ntohl(tokenBytes[2]),
+                      ntohl(tokenBytes[3]), ntohl(tokenBytes[4]), ntohl(tokenBytes[5]),
+                      ntohl(tokenBytes[6]), ntohl(tokenBytes[7])];
+    
+    NSLog(@"\n[VoIP Token]: %@\n\n",hexToken);
+    
+    [self sendEventWithNameWrapper:CallKeepPushKitToken body:@{ @"token": hexToken }];
+}
+
+- (NSString *)createUUID {
+    CFUUIDRef uuidObject = CFUUIDCreate(kCFAllocatorDefault);
+    NSString *uuidStr = (NSString *)CFBridgingRelease(CFUUIDCreateString(kCFAllocatorDefault, uuidObject));
+    CFUUIDBytes bytes = CFUUIDGetUUIDBytes(uuidObject);
+    CFRelease(uuidObject);
+    return [uuidStr lowercaseString];
+}
+
+- (void)pushRegistry:(PKPushRegistry *)registry didReceiveIncomingPushWithPayload:(PKPushPayload *)payload forType:(NSString *)type {
+    // Process the received push
+    NSLog(@"didReceiveIncomingPushWithPayload payload = %@", payload.type);
+    /* payload example.
+     {
+         "callkeep": {
+             "title": "Incoming Call",
+             "number": "+86186123456789"
+         }
+     }
+    */
+    NSDictionary *dic = payload.dictionaryPayload[@"callkeep"];
+    NSString *number = dic[@"number"];
+    [CallKeep reportNewIncomingCall:[self createUUID]
+                             handle:number
+                         handleType:@"number"
+                           hasVideo:NO
+                localizedCallerName:@"hello"
+                        fromPushKit:YES
+                            payload:payload.dictionaryPayload
+              withCompletionHandler:^(){}];
+}
+
 
 -(void) checkIfBusyWithResult:(FlutterResult)result
 {

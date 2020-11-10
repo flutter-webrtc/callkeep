@@ -10,13 +10,12 @@
 #import <UIKit/UIKit.h>
 #import <CallKit/CallKit.h>
 #import <Intents/Intents.h>
+#import <PushKit/PushKit.h>
 
-@interface CallKeep: NSObject<FlutterStreamHandler, CXProviderDelegate>
+@interface CallKeep: NSObject<CXProviderDelegate, PKPushRegistryDelegate>
 @property (nonatomic, strong, nullable) CXCallController *callKeepCallController;
 @property (nonatomic, strong, nullable) CXProvider *callKeepProvider;
-@property (nonatomic, strong, nullable) FlutterEventSink eventSink;
-@property (nonatomic, strong, nullable) FlutterEventChannel *eventChannel;
-@property (nonatomic, strong, nullable) NSObject<FlutterBinaryMessenger>* messenger;
+@property (nonatomic, strong, nullable) FlutterMethodChannel* eventChannel;
 
 - (BOOL)handleMethodCall:(FlutterMethodCall* _Nonnull)call result:(FlutterResult _Nonnull )result;
 

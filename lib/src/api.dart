@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart'
     show
@@ -21,35 +20,22 @@ bool get supportConnectionService =>
     !isIOS && int.parse(Platform.version) >= 23;
 
 class FlutterCallkeep extends EventManager {
-  FlutterCallkeep();
-  static final _random = Random();
-  final _id = _random.nextInt(0x7FFFFFFF);
-  BuildContext _context;
+  factory FlutterCallkeep() {
+    return _instance;
+  }
+  FlutterCallkeep._internal() {
+    _event.setMethodCallHandler(eventListener);
+  }
+  static final FlutterCallkeep _instance = FlutterCallkeep._internal();
   static const MethodChannel _channel = MethodChannel('FlutterCallKeep.Method');
-  StreamSubscription<dynamic> _eventSubscription;
-
-  EventChannel _eventChannelFor(int id) {
-    return EventChannel('FlutterCallKeep.Event/channel$id');
-  }
-
-  void errorListener(Object obj) {
-    final PlatformException e = obj;
-    throw e;
-  }
+  static const MethodChannel _event = MethodChannel('FlutterCallKeep.Event');
+  BuildContext _context;
 
   Future<void> setup(Map<String, dynamic> options) async {
     if (!isIOS) {
       await _setupAndroid(options['android'] as Map<String, dynamic>);
     }
     await _setupIOS(options['ios'] as Map<String, dynamic>);
-
-    _eventSubscription ??= _eventChannelFor(_id)
-        .receiveBroadcastStream()
-        .listen(eventListener, onError: errorListener);
-  }
-
-  Future<void> close() async {
-    await _eventSubscription.cancel();
   }
 
   Future<void> registerPhoneAccount() async {
@@ -274,7 +260,6 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<void> _setupIOS(Map<String, dynamic> options) async {
-    options['id'] = '$_id';
     if (options['appName'] == null) {
       throw Exception('CallKeep.setup: option "appName" is required');
     }
@@ -287,7 +272,6 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<bool> _setupAndroid(Map<String, dynamic> options) async {
-    options['id'] = '$_id';
     await _channel.invokeMethod<void>('setup', {'options': options});
     final showAccountAlert = await _checkPhoneAccountPermission(
         options['additionalPermissions'] as List<String> ?? <String>[]);
@@ -354,12 +338,10 @@ class FlutterCallkeep extends EventManager {
     );
   }
 
-  void eventListener(dynamic payload) {
-    final map = payload as Map<dynamic, dynamic>;
-    final String event = map['event'];
-    final Map<dynamic, dynamic> data = map['data'];
-    //print('CallKeep event received [event-channel: $_id]: "$event" => $data');
-    switch (event) {
+  Future<void> eventListener(MethodCall call) async {
+    print('[CallKeep] INFO: received event "${call.method}" ${call.arguments}');
+    final data = call.arguments as Map<dynamic, dynamic>;
+    switch (call.method) {
       case 'CallKeepDidReceiveStartCallAction':
         emit(CallKeepDidReceiveStartCallAction.fromMap(data));
         break;
@@ -395,6 +377,9 @@ class FlutterCallkeep extends EventManager {
         break;
       case 'CallKeepDidLoadWithEvents':
         emit(CallKeepDidLoadWithEvents());
+        break;
+      case 'CallKeepPushKitToken':
+        emit(CallKeepPushKitToken.fromMap(data));
         break;
     }
   }

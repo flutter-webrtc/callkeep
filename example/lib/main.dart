@@ -185,6 +185,10 @@ class _MyAppState extends State<HomePage> {
     });
   }
 
+  void onPushKitToken(CallKeepPushKitToken event) {
+    print('[onPushKitToken] token: ${event.token}');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -197,6 +201,7 @@ class _MyAppState extends State<HomePage> {
     _callKeep.on(
         CallKeepDidPerformSetMutedCallAction(), didPerformSetMutedCallAction);
     _callKeep.on(CallKeepPerformEndCallAction(), endCall);
+    _callKeep.on(CallKeepPushKitToken(), onPushKitToken);
 
     _callKeep.setup(<String, dynamic>{
       'ios': {
