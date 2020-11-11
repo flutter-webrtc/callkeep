@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -259,45 +260,12 @@ class _MyAppState extends State<HomePage> {
   }
 
   void onPushKitToken(CallKeepPushKitToken event) {
-    print('[onPushKitToken] token: ${event.token}');
+    print('[onPushKitToken] token => ${event.token}');
   }
 
   @override
   void initState() {
     super.initState();
-
-    if (isIOS) iOS_Permission();
-
-    _firebaseMessaging.requestNotificationPermissions();
-
-    _firebaseMessaging.getToken().then((token) {
-      print('token => ' + token);
-    });
-
-    _firebaseMessaging.configure(
-      onMessage: (Map<String, dynamic> message) async {
-        print('onMessage: $message');
-        if (message.containsKey('data')) {
-          // Handle data message
-          final dynamic data = message['data'];
-          var number = data['body'] as String;
-          await displayIncomingCall(number);
-        }
-
-        //
-        // _showItemDialog(message);
-      },
-      onBackgroundMessage: myBackgroundMessageHandler,
-      onLaunch: (Map<String, dynamic> message) async {
-        print('onLaunch: $message');
-        // _navigateToItemDetail(message);
-      },
-      onResume: (Map<String, dynamic> message) async {
-        print('onResume: $message');
-        // _navigateToItemDetail(message);
-      },
-    );
-
     _callKeep.on(CallKeepDidDisplayIncomingCall(), didDisplayIncomingCall);
     _callKeep.on(CallKeepPerformAnswerCallAction(), answerCall);
     _callKeep.on(CallKeepDidPerformDTMFAction(), didPerformDTMFAction);
@@ -321,6 +289,34 @@ class _MyAppState extends State<HomePage> {
         'okButton': 'ok',
       },
     });
+
+    if (Platform.isAndroid) {
+      //if (isIOS) iOS_Permission();
+      //  _firebaseMessaging.requestNotificationPermissions();
+
+      _firebaseMessaging.getToken().then((token) {
+        print('[FCM] token => ' + token);
+      });
+
+      _firebaseMessaging.configure(
+        onMessage: (Map<String, dynamic> message) async {
+          print('onMessage: $message');
+          if (message.containsKey('data')) {
+            // Handle data message
+            final dynamic data = message['data'];
+            var number = data['body'] as String;
+            await displayIncomingCall(number);
+          }
+        },
+        onBackgroundMessage: myBackgroundMessageHandler,
+        onLaunch: (Map<String, dynamic> message) async {
+          print('onLaunch: $message');
+        },
+        onResume: (Map<String, dynamic> message) async {
+          print('onResume: $message');
+        },
+      );
+    }
   }
 
   Widget buildCallingWidgets() {
