@@ -27,7 +27,7 @@
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <!-- END OPTIONAL PERMISSIONS -->
     <application
-        android:name="io.flutter.app.FlutterApplication"
+        android:name=".Application"
         android:label="flutter_callkeep_example"
         android:icon="@mipmap/ic_launcher">
         <activity

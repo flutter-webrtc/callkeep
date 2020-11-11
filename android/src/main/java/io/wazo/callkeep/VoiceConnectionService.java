@@ -56,7 +56,7 @@ public class VoiceConnectionService extends ConnectionService {
     private static Boolean isReachable;
     private static String notReachableCallUuid;
     private static ConnectionRequest currentConnectionRequest;
-    private static PhoneAccountHandle phoneAccountHandle;
+    private static PhoneAccountHandle phoneAccountHandle = null;
     private static String TAG = "RNCK:VoiceConnectionService";
     public static Map<String, VoiceConnection> currentConnections = new HashMap<>();
     public static Boolean hasOutgoingCall = false;

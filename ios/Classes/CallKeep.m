@@ -6,14 +6,9 @@
 //  SPDX-License-Identifier: ISC, MIT
 //
 #import <objc/runtime.h>
-#import "CallKeep.h"
-#import <AVFoundation/AVAudioSession.h>
+#import <AVFoundation/AVFoundation.h>
 
-#ifdef DEBUG
-static int const OUTGOING_CALL_WAKEUP_DELAY = 10;
-#else
-static int const OUTGOING_CALL_WAKEUP_DELAY = 5;
-#endif
+#import "CallKeep.h"
 
 static NSString *const CallKeepHandleStartCallNotification = @"CallKeepHandleStartCallNotification";
 static NSString *const CallKeepDidReceiveStartCallAction = @"CallKeepDidReceiveStartCallAction";
@@ -28,6 +23,7 @@ static NSString *const CallKeepDidToggleHoldAction = @"CallKeepDidToggleHoldActi
 static NSString *const CallKeepProviderReset = @"CallKeepProviderReset";
 static NSString *const CallKeepCheckReachability = @"CallKeepCheckReachability";
 static NSString *const CallKeepDidLoadWithEvents = @"CallKeepDidLoadWithEvents";
+static NSString *const CallKeepPushKitToken = @"CallKeepPushKitToken";
 
 @implementation CallKeep
 {
@@ -162,15 +158,11 @@ static CXProvider* sharedProvider;
 }
 
 - (void)sendEventWithName:(NSString *)name body:(id)body {
-    [self.eventChannel invokeMethod:name arguments:body];
+   [self.eventChannel invokeMethod:name arguments:body];
 }
 
 - (void)sendEventWithNameWrapper:(NSString *)name body:(id)body {
-    if (_hasListeners) {
-        [self sendEventWithName:name body:body];
-    } else {
-        [self.eventChannel invokeMethod:name arguments:body];
-    }
+    [self sendEventWithName:name body:body];
 }
 
 + (void)initCallKitProvider {
@@ -196,7 +188,61 @@ static CXProvider* sharedProvider;
     
     self.callKeepProvider = sharedProvider;
     [self.callKeepProvider setDelegate:self queue:nil];
+    [self voipRegistration];
 }
+
+#pragma mark - PushKit
+
+-(void)voipRegistration
+{
+    PKPushRegistry* voipRegistry = [[PKPushRegistry alloc] initWithQueue:dispatch_get_main_queue()];
+    voipRegistry.delegate = self;
+    voipRegistry.desiredPushTypes = [NSSet setWithObject:PKPushTypeVoIP];
+}
+
+- (void)pushRegistry:(PKPushRegistry *)registry didUpdatePushCredentials:(PKPushCredentials *)pushCredentials forType:(PKPushType)type {
+    const unsigned *tokenBytes = [pushCredentials.token bytes];
+    NSString *hexToken = [NSString stringWithFormat:@"%08x%08x%08x%08x%08x%08x%08x%08x",
+                      ntohl(tokenBytes[0]), ntohl(tokenBytes[1]), ntohl(tokenBytes[2]),
+                      ntohl(tokenBytes[3]), ntohl(tokenBytes[4]), ntohl(tokenBytes[5]),
+                      ntohl(tokenBytes[6]), ntohl(tokenBytes[7])];
+    
+    NSLog(@"\n[VoIP Token]: %@\n\n",hexToken);
+    
+    [self sendEventWithNameWrapper:CallKeepPushKitToken body:@{ @"token": hexToken }];
+}
+
+- (NSString *)createUUID {
+    CFUUIDRef uuidObject = CFUUIDCreate(kCFAllocatorDefault);
+    NSString *uuidStr = (NSString *)CFBridgingRelease(CFUUIDCreateString(kCFAllocatorDefault, uuidObject));
+    CFUUIDBytes bytes = CFUUIDGetUUIDBytes(uuidObject);
+    CFRelease(uuidObject);
+    return [uuidStr lowercaseString];
+}
+
+- (void)pushRegistry:(PKPushRegistry *)registry didReceiveIncomingPushWithPayload:(PKPushPayload *)payload forType:(NSString *)type {
+    // Process the received push
+    NSLog(@"didReceiveIncomingPushWithPayload payload = %@", payload.type);
+    /* payload example.
+     {
+         "callkeep": {
+             "title": "Incoming Call",
+             "number": "+86186123456789"
+         }
+     }
+    */
+    NSDictionary *dic = payload.dictionaryPayload[@"callkeep"];
+    NSString *number = dic[@"number"];
+    [CallKeep reportNewIncomingCall:[self createUUID]
+                             handle:number
+                         handleType:@"number"
+                           hasVideo:NO
+                localizedCallerName:@"hello"
+                        fromPushKit:YES
+                            payload:payload.dictionaryPayload
+              withCompletionHandler:^(){}];
+}
+
 
 -(void) checkIfBusyWithResult:(FlutterResult)result
 {
@@ -463,8 +509,8 @@ contactIdentifier:(NSString * _Nullable)contactIdentifier
             @"callUUID": uuidString,
             @"handle": handle,
             @"localizedCallerName": localizedCallerName ? localizedCallerName : @"",
-            @"hasVideo": hasVideo ? @"1" : @"0",
-            @"fromPushKit": fromPushKit ? @"1" : @"0",
+            @"hasVideo": @(hasVideo),
+            @"fromPushKit": @(fromPushKit),
             @"payload": payload ? payload : @"",
         }];
         if (error == nil) {
@@ -673,7 +719,7 @@ continueUserActivity:(NSUserActivity *)userActivity
 #endif
     //this means something big changed, so tell the JS. The JS should
     //probably respond by hanging up all calls.
-    [self sendEventWithNameWrapper:CallKeepProviderReset body:nil];
+    [self sendEventWithNameWrapper:CallKeepProviderReset body:@{}];
 }
 
 // Starting outgoing call
@@ -694,7 +740,7 @@ continueUserActivity:(NSUserActivity *)userActivity
 -(void) reportUpdatedCall:(NSString *)uuidString contactIdentifier:(NSString *)contactIdentifier
 {
 #ifdef DEBUG
-    NSLog(@"[CallKeep][reportUpdatedCall] contactIdentifier = %i", contactIdentifier);
+    NSLog(@"[CallKeep][reportUpdatedCall] contactIdentifier = %@", contactIdentifier);
 #endif
     NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:uuidString];
     CXCallUpdate *callUpdate = [[CXCallUpdate alloc] init];
@@ -772,7 +818,7 @@ continueUserActivity:(NSUserActivity *)userActivity
     [[NSNotificationCenter defaultCenter] postNotificationName:AVAudioSessionInterruptionNotification object:nil userInfo:userInfo];
     
     [self configureAudioSession];
-    [self sendEventWithNameWrapper:CallKeepDidActivateAudioSession body:nil];
+    [self sendEventWithNameWrapper:CallKeepDidActivateAudioSession body:@{}];
 }
 
 - (void)provider:(CXProvider *)provider didDeactivateAudioSession:(AVAudioSession *)audioSession
@@ -780,7 +826,7 @@ continueUserActivity:(NSUserActivity *)userActivity
 #ifdef DEBUG
     NSLog(@"[CallKeep][CXProviderDelegate][provider:didDeactivateAudioSession]");
 #endif
-    [self sendEventWithNameWrapper:CallKeepDidDeactivateAudioSession body:nil];
+    [self sendEventWithNameWrapper:CallKeepDidDeactivateAudioSession body:@{}];
 }
 
 @end

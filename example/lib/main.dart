@@ -1,9 +1,74 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
 import 'package:callkeep/callkeep.dart';
 import 'package:uuid/uuid.dart';
+
+/// For fcm background message handler.
+final FlutterCallkeep _callKeep = FlutterCallkeep();
+bool _callKeepInited = false;
+
+Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
+  print('backgroundMessage: message => ${message.toString()}');
+
+  var number = message['data']['body'] as String;
+  final callUUID = Uuid().v4();
+  _callKeep.on(CallKeepPerformAnswerCallAction(),
+      (CallKeepPerformAnswerCallAction event) {
+    print(
+        'backgroundMessage: CallKeepPerformAnswerCallAction ${event.callUUID}');
+    _callKeep.startCall(event.callUUID, number, number);
+
+    Timer(const Duration(seconds: 1), () {
+      print('[setCurrentCallActive] $callUUID, number: $number');
+      _callKeep.setCurrentCallActive(callUUID);
+    });
+    //_callKeep.endCall(event.callUUID);
+  });
+
+  _callKeep.on(CallKeepPerformEndCallAction(),
+      (CallKeepPerformEndCallAction event) {
+    print('backgroundMessage: CallKeepPerformEndCallAction ${event.callUUID}');
+  });
+  if (!_callKeepInited) {
+    _callKeep.setup(<String, dynamic>{
+      'ios': {
+        'appName': 'CallKeepDemo',
+      },
+      'android': {
+        'alertTitle': 'Permissions required',
+        'alertDescription':
+            'This application needs to access your phone accounts',
+        'cancelButton': 'Cancel',
+        'okButton': 'ok',
+      },
+    });
+    _callKeepInited = true;
+  }
+
+  print('backgroundMessage: displayIncomingCall ($number)');
+  _callKeep.displayIncomingCall(callUUID, number);
+  _callKeep.backToForeground();
+  /*
+
+  if (message.containsKey('data')) {
+    // Handle data message
+    final dynamic data = message['data'];
+  }
+
+  if (message.containsKey('notification')) {
+    // Handle notification message
+    final dynamic notification = message['notification'];
+    print('notification => ${notification.toString()}');
+  }
+
+  // Or do other work.
+  */
+  return null;
+}
 
 void main() {
   runApp(MyApp());
@@ -35,8 +100,17 @@ class Call {
 class _MyAppState extends State<HomePage> {
   final FlutterCallkeep _callKeep = FlutterCallkeep();
   Map<String, Call> calls = {};
-
   String newUUID() => Uuid().v4();
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
+
+  void iOS_Permission() {
+    _firebaseMessaging.requestNotificationPermissions(
+        IosNotificationSettings(sound: true, badge: true, alert: true));
+    _firebaseMessaging.onIosSettingsRegistered
+        .listen((IosNotificationSettings settings) {
+      print('Settings registered: $settings');
+    });
+  }
 
   void removeCall(String callUUID) {
     setState(() {
@@ -176,9 +250,23 @@ class _MyAppState extends State<HomePage> {
         handleType: 'number', hasVideo: false);
   }
 
+  void didDisplayIncomingCall(CallKeepDidDisplayIncomingCall event) {
+    var callUUID = event.callUUID;
+    var number = event.handle;
+    print('[displayIncomingCall] $callUUID number: $number');
+    setState(() {
+      calls[callUUID] = Call(number);
+    });
+  }
+
+  void onPushKitToken(CallKeepPushKitToken event) {
+    print('[onPushKitToken] token => ${event.token}');
+  }
+
   @override
   void initState() {
     super.initState();
+    _callKeep.on(CallKeepDidDisplayIncomingCall(), didDisplayIncomingCall);
     _callKeep.on(CallKeepPerformAnswerCallAction(), answerCall);
     _callKeep.on(CallKeepDidPerformDTMFAction(), didPerformDTMFAction);
     _callKeep.on(
@@ -187,6 +275,7 @@ class _MyAppState extends State<HomePage> {
     _callKeep.on(
         CallKeepDidPerformSetMutedCallAction(), didPerformSetMutedCallAction);
     _callKeep.on(CallKeepPerformEndCallAction(), endCall);
+    _callKeep.on(CallKeepPushKitToken(), onPushKitToken);
 
     _callKeep.setup(<String, dynamic>{
       'ios': {
@@ -200,6 +289,34 @@ class _MyAppState extends State<HomePage> {
         'okButton': 'ok',
       },
     });
+
+    if (Platform.isAndroid) {
+      //if (isIOS) iOS_Permission();
+      //  _firebaseMessaging.requestNotificationPermissions();
+
+      _firebaseMessaging.getToken().then((token) {
+        print('[FCM] token => ' + token);
+      });
+
+      _firebaseMessaging.configure(
+        onMessage: (Map<String, dynamic> message) async {
+          print('onMessage: $message');
+          if (message.containsKey('data')) {
+            // Handle data message
+            final dynamic data = message['data'];
+            var number = data['body'] as String;
+            await displayIncomingCall(number);
+          }
+        },
+        onBackgroundMessage: myBackgroundMessageHandler,
+        onLaunch: (Map<String, dynamic> message) async {
+          print('onLaunch: $message');
+        },
+        onResume: (Map<String, dynamic> message) async {
+          print('onResume: $message');
+        },
+      );
+    }
   }
 
   Widget buildCallingWidgets() {

@@ -86,3 +86,10 @@ class CallKeepCheckReachability extends EventType {
 class CallKeepDidLoadWithEvents extends EventType {
   CallKeepDidLoadWithEvents();
 }
+
+class CallKeepPushKitToken extends EventType {
+  CallKeepPushKitToken();
+  CallKeepPushKitToken.fromMap(Map<dynamic, dynamic> arguments)
+      : token = arguments['token'] as String;
+  String token;
+}

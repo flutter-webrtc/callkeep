@@ -217,7 +217,6 @@ public class CallKeepModule {
     public void setup(ConstraintsMap options) {
         VoiceConnectionService.setAvailable(false);
         this._settings = options;
-
         if (isConnectionServiceAvailable()) {
             this.registerPhoneAccount();
             this.registerEvents();
@@ -598,7 +597,7 @@ public class CallKeepModule {
     }
 
     private void sendEventToFlutter(String eventName, @Nullable ConstraintsMap params) {
-        _eventChannel.invokeMethod(eventName, params != null? params.toMap() : null);
+        _eventChannel.invokeMethod(eventName, params.toMap());
     }
 
     private String getApplicationName(Context appContext) {
@@ -735,10 +734,10 @@ public class CallKeepModule {
                     sendEventToFlutter("CallKeepDidReceiveStartCallAction", args);
                     break;
                 case ACTION_AUDIO_SESSION:
-                    sendEventToFlutter("CallKeepDidActivateAudioSession", null);
+                    sendEventToFlutter("CallKeepDidActivateAudioSession", args);
                     break;
                 case ACTION_CHECK_REACHABILITY:
-                    sendEventToFlutter("CallKeepCheckReachability", null);
+                    sendEventToFlutter("CallKeepCheckReachability", args);
                     break;
                 case ACTION_WAKE_APP:
                     Intent headlessIntent = new Intent(_context, CallKeepBackgroundMessagingService.class);
