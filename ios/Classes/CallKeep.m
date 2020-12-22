@@ -88,7 +88,7 @@ static CXProvider* sharedProvider;
         result(nil);
     }
     else if ([@ "startCall" isEqualToString:method]) {
-        [self startCall:argsMap[@"uuid"] handle:argsMap[@"handle"] contactIdentifier:argsMap[@"callerName"] handleType:argsMap[@"handleType"] video:[argsMap[@"hasVideo"] boolValue]];
+        [self startCall:argsMap[@"uuid"] handle:argsMap[@"number"] contactIdentifier:argsMap[@"callerName"] handleType:argsMap[@"handleType"] video:[argsMap[@"hasVideo"] boolValue]];
         result(nil);
     }
     else if ([@"isCallActive" isEqualToString:method]) {

@@ -104,19 +104,19 @@ class FlutterCallkeep extends EventManager {
     }
   }
 
-  Future<void> startCall(String uuid, String handle, String callerName,
+  Future<void> startCall(String uuid, String number, String callerName,
       {String handleType = 'number', bool hasVideo = false}) async {
     if (!isIOS) {
       await _channel.invokeMethod<void>('startCall', <String, dynamic>{
         'uuid': uuid,
-        'handle': handle,
+        'number': number,
         'callerName': callerName
       });
       return;
     }
     await _channel.invokeMethod<void>('startCall', <String, dynamic>{
       'uuid': uuid,
-      'handle': handle,
+      'number': number,
       'callerName': callerName,
       'handleType': handleType,
       'hasVideo': hasVideo
