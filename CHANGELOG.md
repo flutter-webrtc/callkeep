@@ -1,6 +1,11 @@
 # Changelog
 
 -----------------------------------------------
+[0.2.1] - 2020.12.23
+
+* Fix: Missing null check.
+* Fix: change parameter handle to number.
+
 [0.2.0] - 2020.11.11
 
 * Change FlutterCallKeep as a singleton.
