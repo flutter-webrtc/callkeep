@@ -226,18 +226,30 @@ static CXProvider* sharedProvider;
     /* payload example.
      {
          "callkeep": {
-             "title": "Incoming Call",
-             "number": "+86186123456789"
+             "caller_id": "+8618612345678",
+             "caller_name": "hello",
+             "caller_id_type": "number",
+             "has_video": false,
+         },
+         "extra": {
+             "foo": "bar",
+             "key": "value",
          }
      }
     */
     NSDictionary *dic = payload.dictionaryPayload[@"callkeep"];
-    NSString *number = dic[@"number"];
+    NSString *number = dic[@"caller_id"];
+    NSString *localizedCallerName = dic[@"caller_name"];
+    BOOL hasVideo = [dic[@"has_video"] boolValue];
+    NSString *handleType = dic[@"caller_id_type"];
+    
+    //NSDictionary *extra = payload.dictionaryPayload[@"extra"];
+
     [CallKeep reportNewIncomingCall:[self createUUID]
                              handle:number
-                         handleType:@"number"
-                           hasVideo:NO
-                localizedCallerName:@"hello"
+                         handleType:handleType
+                           hasVideo:hasVideo
+                localizedCallerName:localizedCallerName
                         fromPushKit:YES
                             payload:payload.dictionaryPayload
               withCompletionHandler:^(){}];
