@@ -225,25 +225,21 @@ static CXProvider* sharedProvider;
     NSLog(@"didReceiveIncomingPushWithPayload payload = %@", payload.type);
     /* payload example.
     {
-        "callkeep": {
-            "uuid": "xxxxx-xxxxx-xxxxx-xxxxx",
-            "caller_id": "+8618612345678",
-            "caller_name": "hello",
-            "caller_id_type": "number", 
-            "has_video": false,
-        },
-        "extra": {
-            "foo": "bar",
-            "key": "value",
-        }
+        "uuid": "xxxxx-xxxxx-xxxxx-xxxxx",
+        "caller_id": "+8618612345678",
+        "caller_name": "hello",
+        "caller_id_type": "number", 
+        "has_video": false,
     }
     */
-    NSDictionary *dic = payload.dictionaryPayload[@"callkeep"];
+    NSDictionary *dic = payload.dictionaryPayload;
+
+    NSString *uuid = dic[@"uuid"];
     NSString *callerId = dic[@"caller_id"];
     NSString *callerName = dic[@"caller_name"];
     BOOL hasVideo = [dic[@"has_video"] boolValue];
     NSString *callerIdType = dic[@"caller_id_type"];
-    NSString *uuid = dic[@"uuid"];
+   
 
     if( uuid == nil) {
         uuid = [self createUUID];
@@ -257,7 +253,7 @@ static CXProvider* sharedProvider;
                            hasVideo:hasVideo
                 localizedCallerName:callerName
                         fromPushKit:YES
-                            payload:payload.dictionaryPayload
+                            payload:dic
               withCompletionHandler:^(){}];
 }
 

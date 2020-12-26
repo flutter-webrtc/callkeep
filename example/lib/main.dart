@@ -11,19 +11,39 @@ import 'package:uuid/uuid.dart';
 final FlutterCallkeep _callKeep = FlutterCallkeep();
 bool _callKeepInited = false;
 
+/*
+{
+    "uuid": "xxxxx-xxxxx-xxxxx-xxxxx",
+    "caller_id": "+8618612345678",
+    "caller_name": "hello",
+    "caller_id_type": "number", 
+    "has_video": false,
+
+    "extra": {
+        "foo": "bar",
+        "key": "value",
+    }
+}
+*/
+
 Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
   print('backgroundMessage: message => ${message.toString()}');
+  var payload = message['data'];
+  var callerId = payload['caller_id'] as String;
+  var callerNmae = payload['caller_name'] as String;
+  var uuid = payload['uuid'] as String;
+  var hasVideo = payload['has_video'] == "true";
 
-  var number = message['data']['body'] as String;
-  final callUUID = Uuid().v4();
+  final callUUID = uuid ?? Uuid().v4();
   _callKeep.on(CallKeepPerformAnswerCallAction(),
       (CallKeepPerformAnswerCallAction event) {
     print(
         'backgroundMessage: CallKeepPerformAnswerCallAction ${event.callUUID}');
-    _callKeep.startCall(event.callUUID, number, number);
+    _callKeep.startCall(event.callUUID, callerId, callerNmae);
 
     Timer(const Duration(seconds: 1), () {
-      print('[setCurrentCallActive] $callUUID, number: $number');
+      print(
+          '[setCurrentCallActive] $callUUID, callerId: $callerId, callerName: $callerNmae');
       _callKeep.setCurrentCallActive(callUUID);
     });
     //_callKeep.endCall(event.callUUID);
@@ -49,8 +69,9 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
     _callKeepInited = true;
   }
 
-  print('backgroundMessage: displayIncomingCall ($number)');
-  _callKeep.displayIncomingCall(callUUID, number);
+  print('backgroundMessage: displayIncomingCall ($callerId)');
+  _callKeep.displayIncomingCall(callUUID, callerId,
+      localizedCallerName: callerNmae, hasVideo: hasVideo);
   _callKeep.backToForeground();
   /*
 

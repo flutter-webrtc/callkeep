@@ -1,6 +1,10 @@
 # Changelog
 
 -----------------------------------------------
+[0.2.2] - 2020.12.27
+
+* Update json format for push payload.
+
 [0.2.1] - 2020.12.23
 
 * Fix: Missing null check.
