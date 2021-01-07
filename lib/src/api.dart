@@ -251,7 +251,7 @@ class FlutterCallkeep extends EventManager {
             'CallKeep.reportUpdatedCall was called from unsupported OS');
   }
 
-  Future<void> backToForeground() async {
+  Future<bool> backToForeground() async {
     if (isIOS) {
       return false;
     }
