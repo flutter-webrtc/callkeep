@@ -253,10 +253,11 @@ class FlutterCallkeep extends EventManager {
 
   Future<void> backToForeground() async {
     if (isIOS) {
-      return;
+      return false;
     }
 
-    await _channel.invokeMethod<void>('backToForeground', <String, dynamic>{});
+    return await _channel
+        .invokeMethod<bool>('backToForeground', <String, dynamic>{});
   }
 
   Future<void> _setupIOS(Map<String, dynamic> options) async {
