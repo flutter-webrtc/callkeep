@@ -1,6 +1,10 @@
 # Changelog
 
 -----------------------------------------------
+[0.2.3] - 2021.01.08
+
+* Fix backToForeground method.
+
 [0.2.2] - 2020.12.27
 
 * Update json format for push payload.
