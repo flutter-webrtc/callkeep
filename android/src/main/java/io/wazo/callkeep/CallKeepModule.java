@@ -544,7 +544,7 @@ public class CallKeepModule {
     @SuppressLint("WrongConstant")
     public void backToForeground(@NonNull MethodChannel.Result result) {
         Context context = getAppContext();
-        String packageName = context.getApplicationContext().getPackageName();
+        String packageName = context.getPackageName();
         Intent focusIntent = context.getPackageManager().getLaunchIntentForPackage(packageName).cloneFilter();
         Activity activity = this._currentActivity;
         boolean isOpened = activity != null;
@@ -557,10 +557,13 @@ public class CallKeepModule {
                     WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED +
                     WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD +
                     WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
-
-            this._currentActivity.startActivity(focusIntent);
+            if (activity != null) {
+                activity.startActivity(focusIntent);
+            } else {
+                context.startActivity(focusIntent);
+            }
         }
-        result.success(null);
+        result.success(isOpened);
     }
 
     private void initializeTelecomManager() {

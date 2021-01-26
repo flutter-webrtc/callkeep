@@ -224,22 +224,36 @@ static CXProvider* sharedProvider;
     // Process the received push
     NSLog(@"didReceiveIncomingPushWithPayload payload = %@", payload.type);
     /* payload example.
-     {
-         "callkeep": {
-             "title": "Incoming Call",
-             "number": "+86186123456789"
-         }
-     }
+    {
+        "uuid": "xxxxx-xxxxx-xxxxx-xxxxx",
+        "caller_id": "+8618612345678",
+        "caller_name": "hello",
+        "caller_id_type": "number", 
+        "has_video": false,
+    }
     */
-    NSDictionary *dic = payload.dictionaryPayload[@"callkeep"];
-    NSString *number = dic[@"number"];
-    [CallKeep reportNewIncomingCall:[self createUUID]
-                             handle:number
-                         handleType:@"number"
-                           hasVideo:NO
-                localizedCallerName:@"hello"
+    NSDictionary *dic = payload.dictionaryPayload;
+
+    NSString *uuid = dic[@"uuid"];
+    NSString *callerId = dic[@"caller_id"];
+    NSString *callerName = dic[@"caller_name"];
+    BOOL hasVideo = [dic[@"has_video"] boolValue];
+    NSString *callerIdType = dic[@"caller_id_type"];
+   
+
+    if( uuid == nil) {
+        uuid = [self createUUID];
+    }
+
+    //NSDictionary *extra = payload.dictionaryPayload[@"extra"];
+
+    [CallKeep reportNewIncomingCall:uuid
+                             handle:callerId
+                         handleType:callerIdType
+                           hasVideo:hasVideo
+                localizedCallerName:callerName
                         fromPushKit:YES
-                            payload:payload.dictionaryPayload
+                            payload:dic
               withCompletionHandler:^(){}];
 }
 
