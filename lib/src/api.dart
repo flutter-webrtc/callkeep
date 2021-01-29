@@ -53,13 +53,15 @@ class FlutterCallkeep extends EventManager {
     return _channel.invokeMethod<void>('registerEvents', <String, dynamic>{});
   }
 
-  Future<void> hasDefaultPhoneAccount(
+  Future<bool> hasDefaultPhoneAccount(
       BuildContext context, Map<String, dynamic> options) async {
     _context = context;
     if (!isIOS) {
-      return _hasDefaultPhoneAccount(options);
+      return await _hasDefaultPhoneAccount(options);
     }
-    return;
+
+    // return true on iOS because we don't want to block the endUser
+    return true;
   }
 
   Future<bool> _checkDefaultPhoneAccount() async {
@@ -67,12 +69,14 @@ class FlutterCallkeep extends EventManager {
         .invokeMethod<bool>('checkDefaultPhoneAccount', <String, dynamic>{});
   }
 
-  Future<void> _hasDefaultPhoneAccount(Map<String, dynamic> options) async {
+  Future<bool> _hasDefaultPhoneAccount(Map<String, dynamic> options) async {
     final hasDefault = await _checkDefaultPhoneAccount();
     final shouldOpenAccounts = await _alert(options, hasDefault);
-    if (shouldOpenAccounts == true) {
+    if (shouldOpenAccounts) {
       await _openPhoneAccounts();
+      return true;
     }
+    return false;
   }
 
   Future<void> displayIncomingCall(String uuid, String handle,
