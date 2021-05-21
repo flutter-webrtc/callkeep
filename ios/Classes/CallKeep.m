@@ -580,7 +580,11 @@ contactIdentifier:(NSString * _Nullable)contactIdentifier
 #ifdef DEBUG
     NSLog(@"[CallKeep][getProviderConfiguration]");
 #endif
-    CXProviderConfiguration *providerConfiguration = [[CXProviderConfiguration alloc] initWithLocalizedName:settings[@"appName"]];
+    NSString *appName = @"Unknown App";
+    if (settings != nil) {
+        appName = settings[@"appName"];
+    }
+    CXProviderConfiguration *providerConfiguration = [[CXProviderConfiguration alloc] initWithLocalizedName:appName];
     providerConfiguration.supportsVideo = YES;
     providerConfiguration.maximumCallGroups = 3;
     providerConfiguration.maximumCallsPerCallGroup = 1;
