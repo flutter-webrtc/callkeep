@@ -537,7 +537,7 @@ public class CallKeepModule {
     
     public static Boolean isConnectionServiceAvailable() {
         // PhoneAccount is available since api level 23
-        return Build.VERSION.SDK_INT >= 23;
+        return Build.VERSION.SDK_INT >= 22;
     }
 
     

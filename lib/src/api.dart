@@ -17,7 +17,7 @@ import 'event.dart';
 
 bool get isIOS => Platform.isIOS;
 bool get supportConnectionService =>
-    !isIOS && int.parse(Platform.version) >= 23;
+    !isIOS && int.parse(Platform.version) >= 22;
 
 class FlutterCallkeep extends EventManager {
   factory FlutterCallkeep() {
