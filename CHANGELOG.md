@@ -1,6 +1,11 @@
 # Changelog
 
 -----------------------------------------------
+[0.2.4] - 2021.01.08
+
+* Fix crash when appName is not set.
+* hasDefaultPhoneAccount give feedback about the user choice.
+
 [0.2.3] - 2021.01.08
 
 * Fix backToForeground method.
