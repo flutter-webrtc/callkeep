@@ -3,13 +3,14 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart'
     show
-        showDialog,
         AlertDialog,
         BuildContext,
         FlatButton,
         Navigator,
         Text,
-        Widget;
+        TextButton,
+        Widget,
+        showDialog;
 import 'package:flutter/services.dart' show MethodChannel;
 
 import 'actions.dart';
@@ -29,7 +30,7 @@ class FlutterCallkeep extends EventManager {
   static final FlutterCallkeep _instance = FlutterCallkeep._internal();
   static const MethodChannel _channel = MethodChannel('FlutterCallKeep.Method');
   static const MethodChannel _event = MethodChannel('FlutterCallKeep.Event');
-  BuildContext _context;
+  BuildContext? _context;
 
   Future<void> setup(Map<String, dynamic> options) async {
     if (!isIOS) {
@@ -64,7 +65,7 @@ class FlutterCallkeep extends EventManager {
     return true;
   }
 
-  Future<bool> _checkDefaultPhoneAccount() async {
+  Future<bool?> _checkDefaultPhoneAccount() async {
     return await _channel
         .invokeMethod<bool>('checkDefaultPhoneAccount', <String, dynamic>{});
   }
@@ -161,8 +162,14 @@ class FlutterCallkeep extends EventManager {
     }
   }
 
-  Future<bool> isCallActive(String uuid) async => await _channel
-      .invokeMethod<bool>('isCallActive', <String, dynamic>{'uuid': uuid});
+  Future<bool> isCallActive(String uuid) async {
+    var resp = await _channel
+        .invokeMethod<bool>('isCallActive', <String, dynamic>{'uuid': uuid});
+    if (resp != null) {
+      return resp;
+    }
+    return false;
+  }
 
   Future<void> endCall(String uuid) async => await _channel
       .invokeMethod<void>('endCall', <String, dynamic>{'uuid': uuid});
@@ -174,16 +181,24 @@ class FlutterCallkeep extends EventManager {
     if (isIOS) {
       return true;
     }
-    return await _channel
+    var resp = await _channel
         .invokeMethod<bool>('hasPhoneAccount', <String, dynamic>{});
+    if (resp != null) {
+      return resp;
+    }
+    return false;
   }
 
   Future<bool> hasOutgoingCall() async {
     if (isIOS) {
       return true;
     }
-    return await _channel
+    var resp = await _channel
         .invokeMethod<bool>('hasOutgoingCall', <String, dynamic>{});
+    if (resp != null) {
+      return resp;
+    }
+    return false;
   }
 
   Future<void> setMutedCall(String uuid, bool shouldMute) async =>
@@ -221,7 +236,7 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<void> updateDisplay(String uuid,
-          {String displayName, String handle}) async =>
+          {required String displayName, required String handle}) async =>
       await _channel.invokeMethod<void>('updateDisplay', <String, dynamic>{
         'uuid': uuid,
         'displayName': displayName,
@@ -259,9 +274,12 @@ class FlutterCallkeep extends EventManager {
     if (isIOS) {
       return false;
     }
-
-    return await _channel
+    var resp = await _channel
         .invokeMethod<bool>('backToForeground', <String, dynamic>{});
+    if (resp != null) {
+      return resp;
+    }
+    return false;
   }
 
   Future<void> _setupIOS(Map<String, dynamic> options) async {
@@ -279,7 +297,7 @@ class FlutterCallkeep extends EventManager {
   Future<bool> _setupAndroid(Map<String, dynamic> options) async {
     await _channel.invokeMethod<void>('setup', {'options': options});
     final showAccountAlert = await _checkPhoneAccountPermission(
-        options['additionalPermissions'] as List<String> ?? <String>[]);
+        options['additionalPermissions'] as List<String>);
     final shouldOpenAccounts = await _alert(options, showAccountAlert);
 
     if (shouldOpenAccounts) {
@@ -297,30 +315,38 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<bool> _checkPhoneAccountPermission(
-      [List<String> optionalPermissions]) async {
+      List<String>? optionalPermissions) async {
     if (!Platform.isAndroid) {
       return true;
     }
-    return await _channel
+    var resp = await _channel
         .invokeMethod<bool>('checkPhoneAccountPermission', <String, dynamic>{
-      'optionalPermissions': optionalPermissions ?? <String>[],
+      'optionalPermissions': optionalPermissions ?? [],
     });
+    if (resp != null) {
+      return resp;
+    }
+    return false;
   }
 
-  Future<bool> _alert(Map<String, dynamic> options, bool condition) async {
+  Future<bool> _alert(Map<String, dynamic> options, bool? condition) async {
     if (_context == null) {
       return false;
     }
-    return await _showAlertDialog(
-        _context,
+    var resp = await _showAlertDialog(
+        _context!,
         options['alertTitle'] as String,
         options['alertDescription'] as String,
         options['cancelButton'] as String,
         options['okButton'] as String);
+    if (resp != null) {
+      return resp;
+    }
+    return false;
   }
 
-  Future<bool> _showAlertDialog(BuildContext context, String alertTitle,
-      String alertDescription, String cancelButton, String okButton) {
+  Future<bool?> _showAlertDialog(BuildContext context, String? alertTitle,
+      String? alertDescription, String? cancelButton, String? okButton) {
     return showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
@@ -328,15 +354,15 @@ class FlutterCallkeep extends EventManager {
         content: Text(alertDescription ??
             'This application needs to access your phone accounts'),
         actions: <Widget>[
-          FlatButton(
-            child: Text(cancelButton ?? 'Cancel'),
+          TextButton(
             onPressed: () =>
                 Navigator.of(context, rootNavigator: true).pop(false),
+            child: Text(cancelButton ?? 'Cancel'),
           ),
-          FlatButton(
-            child: Text(okButton ?? 'ok'),
+          TextButton(
             onPressed: () =>
                 Navigator.of(context, rootNavigator: true).pop(true),
+            child: Text(okButton ?? 'ok'),
           ),
         ],
       ),
