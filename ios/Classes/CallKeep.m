@@ -232,7 +232,13 @@ static CXProvider* sharedProvider;
         "has_video": false,
     }
     */
+
     NSDictionary *dic = payload.dictionaryPayload;
+
+    if (dic[@"aps"] != nil) {
+        NSLog(@"Do not use the 'alert' format for push type %@.", payload.type);
+        return;
+    }
 
     NSString *uuid = dic[@"uuid"];
     NSString *callerId = dic[@"caller_id"];
