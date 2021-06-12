@@ -18,6 +18,6 @@ Choose `VoIP Services Certificate` to create a push certificate, download `voip_
 
 please refer to `https://console.firebase.google.com/project/[your project]/settings/serviceaccounts/adminsdk`
 
-Select the `go` sdk format under your fcm project to download `serviceAccountKey.json` and rename it to `callkee-fcm.json`
+Select the `go` sdk format under your fcm project to download `serviceAccountKey.json` and rename it to `callkeep-fcm.json`
 
 `go run cmd/main.go -i +8618612345678 -p fcm -d $android_fcm_token`
