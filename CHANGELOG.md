@@ -1,6 +1,13 @@
 # Changelog
 
 -----------------------------------------------
+[0.3.0] - 2021.06.12
+
+* null safety
+* Add toolkit for testing.
+* Fixed receiving Voip push in background mode for iOS 13+.
+* Fix crash when iOS push uses the wrong push format (alert).
+
 [0.2.4] - 2021.01.08
 
 * Fix crash when appName is not set.
