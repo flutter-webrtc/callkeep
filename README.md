@@ -19,4 +19,4 @@
 
 ## push test tool
 
-Please refer to the [Tool](/tools/) to test callkeep offline push.
+Please refer to the [Push Toolkit](/tools/) to test callkeep offline push.
