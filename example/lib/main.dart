@@ -324,9 +324,17 @@ class _MyAppState extends State<HomePage> {
           print('onMessage: $message');
           if (message.containsKey('data')) {
             // Handle data message
-            final dynamic data = message['data'];
-            var number = data['body'] as String;
-            await displayIncomingCall(number);
+            var payload = message['data'];
+            var callerId = payload['caller_id'] as String;
+            var callerName = payload['caller_name'] as String;
+            var uuid = payload['uuid'] as String;
+            var hasVideo = payload['has_video'] == "true";
+            final callUUID = uuid ?? Uuid().v4();
+            setState(() {
+              calls[callUUID] = Call(callerId);
+            });
+            _callKeep.displayIncomingCall(callUUID, callerId,
+                localizedCallerName: callerName, hasVideo: hasVideo);
           }
         },
         onBackgroundMessage: myBackgroundMessageHandler,
