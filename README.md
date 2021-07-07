@@ -16,6 +16,8 @@ This allows you (for example) answering calls when your device is locked even if
 
 ### Initial setup
 
+Basic configuration. In Android a popup is displayed before start requesting some permissions for working properly.
+
 ```dart
 final callSetup = <String, dynamic>{
   'ios': {
@@ -32,6 +34,10 @@ final callSetup = <String, dynamic>{
 
 callKeep.setup(callSetup);
 ```
+
+This configuration should be defined when your application wakes up, but keep in mind this alert will appear if you aren't granting the needed permissions yet.
+
+A clean alternative is to control by yourself the required permissions when your application wakes up, and only invoke the `setup()` method if those permissions are granted.
 
 ### Events
 
@@ -65,6 +71,24 @@ callKeep.on(CallKeepPerformAnswerCallAction(), answerAction);
 callKeep.on(CallKeepPerformEndCallAction(), endAction);
 callKeep.on(CallKeepDidPerformSetMutedCallAction(), setMuted);
 ```
+
+These events are quite crucial because acts as an intermediate between the native calling UI and your calling presenter (or controller or manager).
+
+What does it mean? 
+
+Assuming your application already implements some calling system (RTC, Voip, or whatever) with its own calling UI, you are using some basic controls:
+
+> before implementing `callkeep`
+
+- Hang up -> `presenter.hangUp()`
+- Microphone switcher -> `presenter.microSwitch()`
+
+> after implementing `callkeep`
+
+- Hang up -> `callkeep.endCall(call_uuid)`
+- Microphone switcher -> `callKeep.setMutedCall(uuid, true / false)`
+
+
 
 ### Display incoming calls in foreground, background or terminate state
 
