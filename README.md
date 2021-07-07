@@ -116,9 +116,73 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 ```
 
+Displaying incoming calls is really simple if you are receiving FCM messages (or whatever). This sample shows how to show and close any incoming call:
 
+> Notice that getting data from the payload can be done as you want, this is a sample.
 
-## push payload
+```dart
+import 'dart:convert';
+
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+extension RemoteMessageExt on RemoteMessage {
+  Map<String, dynamic> getContent() {
+    return jsonDecode(this.data["content"]);
+  }
+
+  Map<String, dynamic> payload() {
+    var content = getContent()["payload"];
+    return content;
+  }
+}
+```
+
+```dart
+Future<void> showIncomingCall(
+  BuildContext context,
+  RemoteMessage remoteMessage,
+  FlutterCallkeep callKeep,
+) async {
+  var callerIdFrom = remoteMessage.payload()[MessageManager.CALLER_ID_FROM] as String;
+  var callerName = remoteMessage.payload()[MessageManager.CALLER_NAME] as String;
+  var uuid = remoteMessage.payload()[MessageManager.CALLER_UUID] as String;
+  var hasVideo = remoteMessage.payload()[MessageManager.CALLER_VIDEO] == "true";
+  
+  callKeep.on(CallKeepDidToggleHoldAction(), onHold);
+  callKeep.on(CallKeepPerformAnswerCallAction(), answerAction);
+  callKeep.on(CallKeepPerformEndCallAction(), endAction);
+  callKeep.on(CallKeepDidPerformSetMutedCallAction(), setMuted);
+
+  print('backgroundMessage: displayIncomingCall ($uuid)');
+
+  bool hasPhoneAccount = await callKeep.hasPhoneAccount();
+  if (!hasPhoneAccount) {
+    hasPhoneAccount = await callKeep.hasDefaultPhoneAccount(context, callSetup["android"]);
+  }
+
+  if (!hasPhoneAccount) {
+    return;
+  }
+
+  await callKeep.displayIncomingCall(uuid, callerIdFrom, localizedCallerName: callerName, hasVideo: hasVideo);
+  callKeep.backToForeground();
+}
+
+Future<void> closeIncomingCall(
+  RemoteMessage remoteMessage,
+  FlutterCallkeep callKeep,
+) async {
+  var uuid = remoteMessage.payload()[MessageManager.CALLER_UUID] as String;
+  print('backgroundMessage: closeIncomingCall ($uuid)');
+  bool hasPhoneAccount = await callKeep.hasPhoneAccount();
+  if (!hasPhoneAccount) {
+    return;
+  }
+  await callKeep.endAllCalls();
+}
+```
+
+## Push Payload
 
 ```json
 {
@@ -126,7 +190,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     "caller_id": "+8618612345678",
     "caller_name": "hello",
     "caller_id_type": "number", 
-    "has_video": false,
+    "has_video": false
 }
 ```
 
