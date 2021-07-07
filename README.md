@@ -5,16 +5,16 @@
 * iOS CallKit and Android ConnectionService for Flutter
 * Support FCM and PushKit
 
-> Callkit banned in China
+> Keep in mind Callkit is banned in China, so if you want your app in the chinese AppStore consider include a basic alternative for notifying calls (ex. FCM notifications with sound).
 
-### Introduction
+## Introduction
 
 Callkeep acts as an intermediate between your call system (RTC, VOIP...) and the user, offering a native calling interface for handling your app calls.
 
 This allows you (for example) answering calls when your device is locked even if your app is killed.
 
 
-### Initial setup
+## Initial setup
 
 Basic configuration. In Android a popup is displayed before start requesting some permissions for working properly.
 
@@ -39,9 +39,27 @@ This configuration should be defined when your application wakes up, but keep in
 
 A clean alternative is to control by yourself the required permissions when your application wakes up, and only invoke the `setup()` method if those permissions are granted.
 
-### Events
+## Events
 
 Callkeep offers some events for handle native actions during a call.
+
+These events are quite crucial because acts as an intermediate between the native calling UI and your calling presenter (or controller or manager).
+
+What does it mean? 
+
+Assuming your application already implements some calling system (RTC, Voip, or whatever) with its own calling UI, you are using some basic controls:
+
+> before implementing `callkeep`
+
+- Hang up -> `presenter.hangUp()`
+- Microphone switcher -> `presenter.microSwitch()`
+
+> after implementing `callkeep`
+
+- Hang up -> `callkeep.endCall(call_uuid)`
+- Microphone switcher -> `callKeep.setMutedCall(uuid, true / false)`
+
+Then you handle the action:
 
 ```dart
 Function(CallKeepPerformAnswerCallAction) answerAction = (event) async {
@@ -72,25 +90,7 @@ callKeep.on(CallKeepPerformEndCallAction(), endAction);
 callKeep.on(CallKeepDidPerformSetMutedCallAction(), setMuted);
 ```
 
-These events are quite crucial because acts as an intermediate between the native calling UI and your calling presenter (or controller or manager).
-
-What does it mean? 
-
-Assuming your application already implements some calling system (RTC, Voip, or whatever) with its own calling UI, you are using some basic controls:
-
-> before implementing `callkeep`
-
-- Hang up -> `presenter.hangUp()`
-- Microphone switcher -> `presenter.microSwitch()`
-
-> after implementing `callkeep`
-
-- Hang up -> `callkeep.endCall(call_uuid)`
-- Microphone switcher -> `callKeep.setMutedCall(uuid, true / false)`
-
-
-
-### Display incoming calls in foreground, background or terminate state
+## Display incoming calls in foreground, background or terminate state
 
 The incoming call concept we are looking for is firing a display incoming call action when "something" is received in our app.
 
