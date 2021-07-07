@@ -120,6 +120,20 @@ Displaying incoming calls is really simple if you are receiving FCM messages (or
 
 > Notice that getting data from the payload can be done as you want, this is a sample.
 
+A payload data sample:
+
+```json
+{
+    "uuid": "xxxxx-xxxxx-xxxxx-xxxxx",
+    "caller_id": "+0123456789",
+    "caller_name": "Draco",
+    "caller_id_type": "number", 
+    "has_video": "false"
+}
+```
+
+A `RemoteMessage` extension for getting data:
+
 ```dart
 import 'dart:convert';
 
@@ -131,11 +145,12 @@ extension RemoteMessageExt on RemoteMessage {
   }
 
   Map<String, dynamic> payload() {
-    var content = getContent()["payload"];
-    return content;
+    return getContent()["payload"];
   }
 }
 ```
+
+Methods for show and close incoming calls:
 
 ```dart
 Future<void> showIncomingCall(
@@ -143,10 +158,10 @@ Future<void> showIncomingCall(
   RemoteMessage remoteMessage,
   FlutterCallkeep callKeep,
 ) async {
-  var callerIdFrom = remoteMessage.payload()[MessageManager.CALLER_ID_FROM] as String;
-  var callerName = remoteMessage.payload()[MessageManager.CALLER_NAME] as String;
-  var uuid = remoteMessage.payload()[MessageManager.CALLER_UUID] as String;
-  var hasVideo = remoteMessage.payload()[MessageManager.CALLER_VIDEO] == "true";
+  var callerIdFrom = remoteMessage.payload()["caller_id"] as String;
+  var callerName = remoteMessage.payload()["hello"] as String;
+  var uuid = remoteMessage.payload()["uuid"] as String;
+  var hasVideo = remoteMessage.payload()["has_video"] == "true";
   
   callKeep.on(CallKeepDidToggleHoldAction(), onHold);
   callKeep.on(CallKeepPerformAnswerCallAction(), answerAction);
@@ -179,18 +194,6 @@ Future<void> closeIncomingCall(
     return;
   }
   await callKeep.endAllCalls();
-}
-```
-
-## Push Payload
-
-```json
-{
-    "uuid": "xxxxx-xxxxx-xxxxx-xxxxx",
-    "caller_id": "+8618612345678",
-    "caller_name": "hello",
-    "caller_id_type": "number", 
-    "has_video": false
 }
 ```
 
