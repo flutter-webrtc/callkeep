@@ -9,5 +9,5 @@ require (
 	github.com/pion/ion-log v1.2.0
 	github.com/sideshow/apns2 v0.20.0
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a // indirect
-	google.golang.org/api v0.48.0
+	google.golang.org/api v0.50.0
 )
