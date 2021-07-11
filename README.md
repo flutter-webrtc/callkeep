@@ -51,7 +51,7 @@ What does it mean?
 
 Assuming your application already implements some calling system (RTC, Voip, or whatever) with its own calling UI, you are using some basic controls:
 
-<img width="40%" vspace="10" src="../images/sample.png"></p>
+<img width="40%" vspace="10" src="https://raw.githubusercontent.com/efraespada/callkeep/master/images/sample.png"></p>
 
 > before implementing `callkeep`
 
