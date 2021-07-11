@@ -13,7 +13,7 @@
 
 Callkeep acts as an intermediate between your call system (RTC, VOIP...) and the user, offering a native calling interface for handling your app calls.
 
-This allows you (for example) to answer calls when your device is locked even if your app is killed.
+This allows you (for example) to answer calls when your device is locked even if your app is terminated.
 
 
 ## Initial setup
