@@ -13,12 +13,12 @@
 
 Callkeep acts as an intermediate between your call system (RTC, VOIP...) and the user, offering a native calling interface for handling your app calls.
 
-This allows you (for example) answering calls when your device is locked even if your app is killed.
+This allows you (for example) to answer calls when your device is locked even if your app is killed.
 
 
 ## Initial setup
 
-Basic configuration. In Android a popup is displayed before start requesting some permissions for working properly.
+Basic configuration. In Android a popup is displayed before starting requesting some permissions to work properly.
 
 ```dart
 final callSetup = <String, dynamic>{
@@ -43,9 +43,9 @@ A clean alternative is to control by yourself the required permissions when your
 
 ## Events
 
-Callkeep offers some events for handle native actions during a call.
+Callkeep offers some events to handle native actions during a call.
 
-These events are quite crucial because acts as an intermediate between the native calling UI and your call P-C-M.
+These events are quite crucial because they act as an intermediate between the native calling UI and your call P-C-M.
 
 What does it mean? 
 
@@ -96,9 +96,9 @@ callKeep.on(CallKeepDidPerformSetMutedCallAction(), setMuted);
 
 ## Display incoming calls in foreground, background or terminate state
 
-The incoming call concept we are looking for is firing a display incoming call action when "something" is received in our app.
+The incoming call concept we are looking for is firing an incoming call action when "something" is received in our app.
 
-I've tested this concept with FCM and works pretty fine.
+I've tested this concept with FCM and it works pretty fine.
 
 ```dart
 final FlutterCallkeep _callKeep = FlutterCallkeep();
@@ -120,11 +120,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 ```
 
-Displaying incoming calls is really simple if you are receiving FCM messages (or whatever). This sample shows how to show and close any incoming call:
+Displaying incoming calls is really simple if you are receiving FCM messages (or whatever). This example shows how to show and close any incoming call:
 
-> Notice that getting data from the payload can be done as you want, this is a sample.
+> Notice that getting data from the payload can be done as you want, this is an example.
 
-A payload data sample:
+A payload data example:
 
 ```json
 {
@@ -154,7 +154,7 @@ extension RemoteMessageExt on RemoteMessage {
 }
 ```
 
-Methods for show and close incoming calls:
+Methods to show and close incoming calls:
 
 ```dart
 Future<void> showIncomingCall(
@@ -205,10 +205,10 @@ Future<void> closeIncomingCall(
 
 > I don't receive the incoming call
 
-Receiving incoming calls depends on FCM push messages (or the system you use) for handle the call information and displaying it.
-Remember FCM push messages not always works due to data only messages are classed as "low priority". Devices can throttle and ignore these messages if your application is in the background, terminated, or a variety of other conditions such as low battery or currently high CPU usage. To help improve delivery, you can bump the priority of messages. Note; this does still not guarantee delivery. More info [here](https://firebase.flutter.dev/docs/messaging/usage/#low-priority-messages)
+Receiving incoming calls depends on FCM push messages (or the system you use) for handling the call information and displaying it.
+Remember FCM push messages not always works due to data-only messages are classified as "low priority". Devices can throttle and ignore these messages if your application is in the background, terminated, or a variety of other conditions such as low battery or currently high CPU usage. To help improve delivery, you can bump the priority of messages. Note; this does still not guarantee delivery. More info [here](https://firebase.flutter.dev/docs/messaging/usage/#low-priority-messages)
 
-> How I can manage the call if the app is killed and the device is locked?
+> How can I manage the call if the app is terminated and the device is locked?
 
 Even in this scenario, the `backToForeground()` method will open the app and your call P-C-M will be able to work. 
 
