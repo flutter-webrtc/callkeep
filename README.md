@@ -7,6 +7,8 @@
 
 > Keep in mind Callkit is banned in China, so if you want your app in the chinese AppStore consider include a basic alternative for notifying calls (ex. FCM notifications with sound).
 
+`* P-C-M means -> presenter / controller / manager`
+
 ## Introduction
 
 Callkeep acts as an intermediate between your call system (RTC, VOIP...) and the user, offering a native calling interface for handling your app calls.
@@ -43,11 +45,13 @@ A clean alternative is to control by yourself the required permissions when your
 
 Callkeep offers some events for handle native actions during a call.
 
-These events are quite crucial because acts as an intermediate between the native calling UI and your calling presenter (or controller or manager).
+These events are quite crucial because acts as an intermediate between the native calling UI and your call P-C-M.
 
 What does it mean? 
 
 Assuming your application already implements some calling system (RTC, Voip, or whatever) with its own calling UI, you are using some basic controls:
+
+<img width="40%" vspace="10" src="../images/sample.png"></p>
 
 > before implementing `callkeep`
 
@@ -64,22 +68,22 @@ Then you handle the action:
 ```dart
 Function(CallKeepPerformAnswerCallAction) answerAction = (event) async {
     print('CallKeepPerformAnswerCallAction ${event.callUUID}');
-    // notify to your call presenter / controller / manager the answer action
+    // notify to your call P-C-M the answer action
 };
 
 Function(CallKeepPerformEndCallAction) endAction = (event) async {
     print('CallKeepPerformEndCallAction ${event.callUUID}');
-    // notify to your call presenter / controller / manager the end action
+    // notify to your call P-C-M the end action
 };
 
 Function(CallKeepDidPerformSetMutedCallAction) setMuted = (event) async {
     print('CallKeepDidPerformSetMutedCallAction ${event.callUUID}');
-    // notify to your call presenter / controller / manager the muted switch action
+    // notify to your call P-C-M the muted switch action
 };
 
 Function(CallKeepDidToggleHoldAction) onHold = (event) async {
     print('CallKeepDidToggleHoldAction ${event.callUUID}');
-    // notify to your call presenter / controller / manager the hold switch action
+    // notify to your call P-C-M the hold switch action
 };
 ```
 
@@ -159,7 +163,7 @@ Future<void> showIncomingCall(
   FlutterCallkeep callKeep,
 ) async {
   var callerIdFrom = remoteMessage.payload()["caller_id"] as String;
-  var callerName = remoteMessage.payload()["hello"] as String;
+  var callerName = remoteMessage.payload()["caller_name"] as String;
   var uuid = remoteMessage.payload()["uuid"] as String;
   var hasVideo = remoteMessage.payload()["has_video"] == "true";
   
@@ -196,6 +200,18 @@ Future<void> closeIncomingCall(
   await callKeep.endAllCalls();
 }
 ```
+
+### FAQ
+
+> I don't receive the incoming call
+
+Receiving incoming calls depends on FCM push messages (or the system you use) for handle the call information and displaying it.
+Remember FCM push messages not always works due to data only messages are classed as "low priority". Devices can throttle and ignore these messages if your application is in the background, terminated, or a variety of other conditions such as low battery or currently high CPU usage. To help improve delivery, you can bump the priority of messages. Note; this does still not guarantee delivery. More info [here](https://firebase.flutter.dev/docs/messaging/usage/#low-priority-messages)
+
+> How I can manage the call if the app is killed and the device is locked?
+
+Even in this scenario, the `backToForeground()` method will open the app and your call P-C-M will be able to work. 
+
 
 ## push test tool
 
