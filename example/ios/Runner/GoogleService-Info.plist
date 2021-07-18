@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>37302328295-af7hulrebm9tkfpofj9ct1f581bqv5vd.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.37302328295-af7hulrebm9tkfpofj9ct1f581bqv5vd</string>
+	<key>API_KEY</key>
+	<string>AIzaSyDGUeS_d5OU4J4BQrNSve41UXrIYBJ5VeM</string>
+	<key>GCM_SENDER_ID</key>
+	<string>37302328295</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.github.cloudwebrtc.fluttercallkeep</string>
+	<key>PROJECT_ID</key>
+	<string>ledunia2</string>
+	<key>STORAGE_BUCKET</key>
+	<string>ledunia2.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:37302328295:ios:b42d341f6f43348330bb42</string>
+</dict>
+</plist>

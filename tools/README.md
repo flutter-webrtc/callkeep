@@ -14,6 +14,8 @@ Choose `VoIP Services Certificate` to create a push certificate, download `voip_
 
 `go run cmd/main.go -i +8618612345678 -p apns -d $ios_device_token`
 
+Note: a physical device is required to get the firebase device token
+
 ## For Android FCM
 
 please refer to `https://console.firebase.google.com/project/[your project]/settings/serviceaccounts/adminsdk`
