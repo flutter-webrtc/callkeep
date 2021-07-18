@@ -4,13 +4,12 @@ Demonstrates how to use the flutter_callkeep plugin.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+To run this example :
 
-A few resources to get you started if this is your first Flutter project:
+* Create firebase project with android and ios apps using the bundle id `com.github.cloudwebrtc.flutter_callkeep_example` for android and `com.github.cloudwebrtc.flutterCallkeepExample` for ios
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+* Download you `google services.json` and `google services.plist` and add them to the correct folder, (note .plist files has to be added though xcode)
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+* (optional) Get your vapid key/Web Push certificate from firebase and replace `BGsK... REPLACE ME` then get APN certifcate and keys and upload to firebase under cloud messaging 
+
+

@@ -1,12 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.github.cloudwebrtc.flutter_callkeep_example">
-    <!-- io.flutter.app.FlutterApplication is an android.app.Application that
-         calls FlutterMain.startInitialization(this); in its onCreate method.
-         In most cases you can leave this as-is, but you if you want to provide
-         additional functionality it is fine to subclass or reimplement
-         FlutterApplication and put your custom class here. -->
-
-
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
@@ -26,8 +19,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <!-- END OPTIONAL PERMISSIONS -->
-    <application
-        android:name=".Application"
+   <application
         android:label="flutter_callkeep_example"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -64,12 +56,12 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <service android:name="io.wazo.callkeep.VoiceConnectionService"
-          android:label="Wazo"
-          android:permission="android.permission.BIND_TELECOM_CONNECTION_SERVICE">
-          <intent-filter>
-              <action android:name="android.telecom.ConnectionService" />
-          </intent-filter>
-        </service>
+       <service android:name="io.wazo.callkeep.VoiceConnectionService"
+           android:label="Wazo"
+           android:permission="android.permission.BIND_TELECOM_CONNECTION_SERVICE">
+           <intent-filter>
+               <action android:name="android.telecom.ConnectionService" />
+           </intent-filter>
+       </service>
     </application>
 </manifest>
