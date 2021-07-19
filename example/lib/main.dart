@@ -210,7 +210,6 @@ class _MyAppState extends State<HomePage> {
     final String number = calls[callUUID]!.number;
     print('[answerCall] $callUUID, number: $number');
 
-    _callKeep.startCall(event.callUUID!, number, number);
     Timer(const Duration(seconds: 1), () {
       print('[setCurrentCallActive] $callUUID, number: $number');
       _callKeep.setCurrentCallActive(callUUID);
