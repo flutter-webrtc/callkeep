@@ -79,7 +79,6 @@ public class CallKeepModule {
     private static final String TAG = "FLT:CallKeepModule";
     private static TelecomManager telecomManager;
     private static TelephonyManager telephonyManager;
-    private static MethodChannel.Result hasPhoneAccountPromise;
     private Context _context;
     public static PhoneAccountHandle handle;
     private boolean isReceiverRegistered = false;
@@ -207,6 +206,11 @@ public class CallKeepModule {
                 backToForeground(result);
             }
             break;
+            case "foregroundService": {
+                VoiceConnectionService.setSettings(new ConstraintsMap((Map<String, Object>)call.argument("settings")));
+                result.success(null);
+            }
+            break;
             default:
                 return false;
         }
@@ -222,8 +226,9 @@ public class CallKeepModule {
             this.registerEvents();
             VoiceConnectionService.setAvailable(true);
         }
-    }
 
+        VoiceConnectionService.setSettings(options);
+    }
     
     public void registerPhoneAccount() {
         if (!isConnectionServiceAvailable()) {

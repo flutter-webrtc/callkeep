@@ -20,9 +20,13 @@ package io.wazo.callkeep;
 import android.annotation.TargetApi;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningTaskInfo;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -31,11 +35,14 @@ import android.telecom.Connection;
 import android.telecom.ConnectionRequest;
 import android.telecom.ConnectionService;
 import android.telecom.DisconnectCause;
+import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.util.ArrayList;
@@ -46,7 +53,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import io.wazo.callkeep.utils.ConstraintsMap;
 import static io.wazo.callkeep.Constants.*;
+import static io.wazo.callkeep.Constants.FOREGROUND_SERVICE_TYPE_MICROPHONE;
 
 // @see https://github.com/kbagchiGWC/voice-quickstart-android/blob/9a2aff7fbe0d0a5ae9457b48e9ad408740dfb968/exampleConnectionService/src/main/java/com/twilio/voice/examples/connectionservice/VoiceConnectionService.java
 @TargetApi(Build.VERSION_CODES.M)
@@ -61,6 +70,7 @@ public class VoiceConnectionService extends ConnectionService {
     public static Map<String, VoiceConnection> currentConnections = new HashMap<>();
     public static Boolean hasOutgoingCall = false;
     public static VoiceConnectionService currentConnectionService = null;
+    public static ConstraintsMap _settings = null;
 
     public static Connection getConnection(String connectionId) {
         if (currentConnections.containsKey(connectionId)) {
@@ -92,6 +102,10 @@ public class VoiceConnectionService extends ConnectionService {
         isAvailable = value;
     }
 
+    public static void setSettings(ConstraintsMap settings) {
+        _settings = settings;
+    }
+
     public static void setReachable() {
         Log.d(TAG, "setReachable");
         isReachable = true;
@@ -101,6 +115,8 @@ public class VoiceConnectionService extends ConnectionService {
     public static void deinitConnection(String connectionId) {
         Log.d(TAG, "deinitConnection:" + connectionId);
         VoiceConnectionService.hasOutgoingCall = false;
+
+        currentConnectionService.stopForegroundService();
 
         if (currentConnections.containsKey(connectionId)) {
             currentConnections.remove(connectionId);
@@ -115,6 +131,8 @@ public class VoiceConnectionService extends ConnectionService {
         Connection incomingCallConnection = createConnection(request);
         incomingCallConnection.setRinging();
         incomingCallConnection.setInitialized();
+
+        startForegroundService();
 
         return incomingCallConnection;
     }
@@ -164,6 +182,8 @@ public class VoiceConnectionService extends ConnectionService {
         outgoingCallConnection.setAudioModeIsVoip(true);
         outgoingCallConnection.setCallerDisplayName(displayName, TelecomManager.PRESENTATION_ALLOWED);
 
+        startForegroundService();
+
         // ‍️Weirdly on some Samsung phones (A50, S9...) using `setInitialized` will not display the native UI ...
         // when making a call from the native Phone application. The call will still be displayed correctly without it.
         if (!Build.MANUFACTURER.equalsIgnoreCase("Samsung")) {
@@ -178,6 +198,54 @@ public class VoiceConnectionService extends ConnectionService {
         Log.d(TAG, "onCreateOutgoingConnection: calling");
 
         return outgoingCallConnection;
+    }
+
+    private void startForegroundService() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            // Foreground services not required before SDK 28
+            return;
+        }
+        Log.d(TAG, "[VoiceConnectionService] startForegroundService");
+        if (_settings == null || !_settings.hasKey("foregroundService")) {
+            Log.w(TAG, "[VoiceConnectionService] Not creating foregroundService because not configured");
+            return;
+        }
+        ConstraintsMap foregroundSettings = _settings.getMap("foregroundService");
+        String NOTIFICATION_CHANNEL_ID = foregroundSettings.getString("channelId");
+        String channelName = foregroundSettings.getString("channelName");
+        NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName, NotificationManager.IMPORTANCE_NONE);
+        chan.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        assert manager != null;
+        manager.createNotificationChannel(chan);
+
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID);
+        notificationBuilder.setOngoing(true)
+                .setContentTitle(foregroundSettings.getString("notificationTitle"))
+                .setPriority(NotificationManager.IMPORTANCE_MIN)
+                .setCategory(Notification.CATEGORY_SERVICE);
+        
+        if (foregroundSettings.hasKey("notificationIcon")) {
+            Context context = this.getApplicationContext();
+            Resources res = context.getResources();
+            String smallIcon = foregroundSettings.getString("notificationIcon");
+            notificationBuilder.setSmallIcon(res.getIdentifier(smallIcon, "mipmap", context.getPackageName()));
+        }
+
+        Log.d(TAG, "[VoiceConnectionService] Starting foreground service");
+
+        Notification notification = notificationBuilder.build();
+        startForeground(FOREGROUND_SERVICE_TYPE_MICROPHONE, notification);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    private void stopForegroundService() {
+        Log.d(TAG, "[VoiceConnectionService] stopForegroundService");
+        if (_settings == null || !_settings.hasKey("foregroundService")) {
+            Log.d(TAG, "[VoiceConnectionService] Discarding stop foreground service, no service configured");
+            return;
+        }
+        stopForeground(FOREGROUND_SERVICE_TYPE_MICROPHONE);
     }
 
     private void wakeUpApplication(String uuid, String number, String displayName) {
@@ -233,6 +301,22 @@ public class VoiceConnectionService extends ConnectionService {
         extrasMap.put(EXTRA_CALL_NUMBER, request.getAddress().toString());
         VoiceConnection connection = new VoiceConnection(this, extrasMap);
         connection.setConnectionCapabilities(Connection.CAPABILITY_MUTE | Connection.CAPABILITY_SUPPORT_HOLD);
+
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Context context = getApplicationContext();
+            TelecomManager telecomManager = (TelecomManager) context.getSystemService(context.TELECOM_SERVICE);
+            PhoneAccount phoneAccount = telecomManager.getPhoneAccount(request.getAccountHandle());
+
+            //If the phone account is self managed, then this connection must also be self managed.
+            if((phoneAccount.getCapabilities() & PhoneAccount.CAPABILITY_SELF_MANAGED) == PhoneAccount.CAPABILITY_SELF_MANAGED) {
+                Log.d(TAG, "[VoiceConnectionService] PhoneAccount is SELF_MANAGED, so connection will be too");
+                connection.setConnectionProperties(Connection.PROPERTY_SELF_MANAGED);
+            }
+            else {
+                Log.d(TAG, "[VoiceConnectionService] PhoneAccount is not SELF_MANAGED, so connection won't be either");
+            }
+        }
+
         connection.setInitializing();
         connection.setExtras(extras);
         currentConnections.put(extras.getString(EXTRA_CALL_UUID), connection);

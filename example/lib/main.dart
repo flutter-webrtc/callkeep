@@ -54,7 +54,7 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
     print('backgroundMessage: CallKeepPerformEndCallAction ${event.callUUID}');
   });
   if (!_callKeepInited) {
-    _callKeep.setup(<String, dynamic>{
+    _callKeep.setup(null, <String, dynamic>{
       'ios': {
         'appName': 'CallKeepDemo',
       },
@@ -64,6 +64,12 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
             'This application needs to access your phone accounts',
         'cancelButton': 'Cancel',
         'okButton': 'ok',
+        'foregroundService': {
+          'channelId': 'com.company.my',
+          'channelName': 'Foreground service for my app',
+          'notificationTitle': 'My app is running on background',
+          'notificationIcon': 'Path to the resource icon of the notification',
+        },
       },
     });
     _callKeepInited = true;
@@ -263,6 +269,12 @@ class _MyAppState extends State<HomePage> {
             'This application needs to access your phone accounts',
         'cancelButton': 'Cancel',
         'okButton': 'ok',
+        'foregroundService': {
+          'channelId': 'com.company.my',
+          'channelName': 'Foreground service for my app',
+          'notificationTitle': 'My app is running on background',
+          'notificationIcon': 'Path to the resource icon of the notification',
+        },
       });
     }
 
@@ -298,7 +310,7 @@ class _MyAppState extends State<HomePage> {
     _callKeep.on(CallKeepPerformEndCallAction(), endCall);
     _callKeep.on(CallKeepPushKitToken(), onPushKitToken);
 
-    _callKeep.setup(<String, dynamic>{
+    _callKeep.setup(context, <String, dynamic>{
       'ios': {
         'appName': 'CallKeepDemo',
       },

@@ -66,6 +66,7 @@
             android:value="2" />
         <service android:name="io.wazo.callkeep.VoiceConnectionService"
           android:label="Wazo"
+          android:foregroundServiceType="camera|microphone"
           android:permission="android.permission.BIND_TELECOM_CONNECTION_SERVICE">
           <intent-filter>
               <action android:name="android.telecom.ConnectionService" />
