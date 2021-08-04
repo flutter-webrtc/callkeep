@@ -91,6 +91,20 @@ public class VoiceConnection extends Connection {
         sendCallRequestToActivity(ACTION_AUDIO_SESSION, handle);
         Log.d(TAG, "onAnswer executed");
     }
+    
+    
+    @Override
+    public void onAnswer(int videoState) {
+        super.onAnswer(videoState);
+        Log.d(TAG, "onAnswer called");
+
+        setConnectionCapabilities(getConnectionCapabilities() | Connection.CAPABILITY_HOLD);
+        setAudioModeIsVoip(true);
+
+        sendCallRequestToActivity(ACTION_ANSWER_CALL, handle);
+        sendCallRequestToActivity(ACTION_AUDIO_SESSION, handle);
+        Log.d(TAG, "onAnswer executed");
+    }
 
     @Override
     public void onPlayDtmfTone(char dtmf) {
