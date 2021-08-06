@@ -1,6 +1,10 @@
 # Changelog
 
 -----------------------------------------------
+[0.3.1] - 2021.07.27
+
+* Add foregroundService for Android 11.
+
 [0.3.0] - 2021.06.12
 
 * null safety

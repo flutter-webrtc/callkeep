@@ -15,7 +15,6 @@ Callkeep acts as an intermediate between your call system (RTC, VOIP...) and the
 
 This allows you (for example) to answer calls when your device is locked even if your app is terminated.
 
-
 ## Initial setup
 
 Basic configuration. In Android a popup is displayed before starting requesting some permissions to work properly.
@@ -31,6 +30,13 @@ final callSetup = <String, dynamic>{
     'This application needs to access your phone accounts',
     'cancelButton': 'Cancel',
     'okButton': 'ok',
+    // Required to get audio in background when using Android 11
+    'foregroundService': {
+      'channelId': 'com.company.my',
+      'channelName': 'Foreground service for my app',
+      'notificationTitle': 'My app is running on background',
+      'notificationIcon': 'Path to the resource icon of the notification',
+    }, 
   },
 };
 

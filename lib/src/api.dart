@@ -32,9 +32,12 @@ class FlutterCallkeep extends EventManager {
   static const MethodChannel _event = MethodChannel('FlutterCallKeep.Event');
   BuildContext? _context;
 
-  Future<void> setup(Map<String, dynamic> options) async {
+  Future<void> setup(
+      BuildContext? context, Map<String, dynamic> options) async {
+    _context = context;
     if (!isIOS) {
       await _setupAndroid(options['android'] as Map<String, dynamic>);
+      return;
     }
     await _setupIOS(options['ios'] as Map<String, dynamic>);
   }
@@ -329,8 +332,10 @@ class FlutterCallkeep extends EventManager {
     return false;
   }
 
-  Future<bool> _alert(Map<String, dynamic> options, bool? condition) async {
-    if (_context == null) {
+  Future<bool> _alert(
+      Map<String, dynamic> options, bool? showAccountAlert) async {
+    if (_context == null ||
+        (showAccountAlert != null && showAccountAlert == false)) {
       return false;
     }
     var resp = await _showAlertDialog(
@@ -346,8 +351,8 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<bool?> _showAlertDialog(BuildContext context, String? alertTitle,
-      String? alertDescription, String? cancelButton, String? okButton) {
-    return showDialog<bool>(
+      String? alertDescription, String? cancelButton, String? okButton) async {
+    return await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
         title: Text(alertTitle ?? 'Permissions required'),
@@ -367,6 +372,16 @@ class FlutterCallkeep extends EventManager {
         ],
       ),
     );
+  }
+
+  Future<void> setForegroundServiceSettings(
+      Map<String, String> settings) async {
+    if (isIOS) {
+      return;
+    }
+    await _channel.invokeMethod<void>('foregroundService', <String, dynamic>{
+      'settings': {'foregroundService': settings}
+    });
   }
 
   Future<void> eventListener(MethodCall call) async {
