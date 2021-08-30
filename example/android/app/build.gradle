@@ -28,7 +28,7 @@ apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 dependencies {
   // Add the dependencies for any other desired Firebase products
   // https://firebase.google.com/docs/android/setup#available-libraries
-  implementation 'com.google.firebase:firebase-messaging:20.3.0'
+  implementation 'com.google.firebase:firebase-messaging:22.0.0'
 }
 
 android {
