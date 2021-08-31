@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	cloud.google.com/go/firestore v1.5.0 // indirect
-	firebase.google.com/go v3.13.0+incompatible
+	firebase.google.com/go/v4 v4.6.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/pion/ion-log v1.2.0
 	github.com/sideshow/apns2 v0.20.0
