@@ -310,6 +310,10 @@ class FlutterCallkeep extends EventManager {
     return false;
   }
 
+  Future<void> openPhoneAccounts() async {
+    _openPhoneAccounts();
+  }
+
   Future<void> _openPhoneAccounts() async {
     if (!Platform.isAndroid) {
       return;
