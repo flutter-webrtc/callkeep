@@ -229,7 +229,17 @@ public class VoiceConnectionService extends ConnectionService {
             Context context = this.getApplicationContext();
             Resources res = context.getResources();
             String smallIcon = foregroundSettings.getString("notificationIcon");
-            notificationBuilder.setSmallIcon(res.getIdentifier(smallIcon, "mipmap", context.getPackageName()));
+            String mipmap = "mipmap/";
+            String drawable = "drawable/";
+            if (smallIcon.contains(mipmap)) {
+                notificationBuilder.setSmallIcon(
+                        res.getIdentifier(smallIcon.replace(mipmap, ""),
+                                "mipmap", context.getPackageName()));
+            } else if (smallIcon.contains(drawable)) {
+                notificationBuilder.setSmallIcon(
+                        res.getIdentifier(smallIcon.replace(drawable, ""),
+                                "drawable", context.getPackageName()));
+            }
         }
 
         Log.d(TAG, "[VoiceConnectionService] Starting foreground service");

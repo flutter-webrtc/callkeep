@@ -35,7 +35,7 @@ final callSetup = <String, dynamic>{
       'channelId': 'com.company.my',
       'channelName': 'Foreground service for my app',
       'notificationTitle': 'My app is running on background',
-      'notificationIcon': 'Path to the resource icon of the notification',
+      'notificationIcon': 'mipmap/ic_notification_launcher',
     }, 
   },
 };
