@@ -66,7 +66,7 @@ public class FlutterCallkeepPlugin implements FlutterPlugin, MethodCallHandler, 
 
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
-    if (!callKeep.HandleMethodCall(call, result)) {
+    if (!callKeep.handleMethodCall(call, result)) {
       result.notImplemented();
     }
   }

@@ -97,11 +97,13 @@ public class CallKeepModule {
     }
 
     public void dispose(){
+        if (voiceBroadcastReceiver == null || this._context == null) return;
         LocalBroadcastManager.getInstance(this._context).unregisterReceiver(voiceBroadcastReceiver);
         VoiceConnectionService.setPhoneAccountHandle(null);
+        isReceiverRegistered = false;
     }
 
-    public boolean HandleMethodCall(@NonNull MethodCall call, @NonNull Result result) {
+    public boolean handleMethodCall(@NonNull MethodCall call, @NonNull Result result) {
         switch(call.method) {
             case "setup": {
                 setup(new ConstraintsMap((Map<String, Object>)call.argument("options")));
@@ -219,6 +221,9 @@ public class CallKeepModule {
     }
     
     public void setup(ConstraintsMap options) {
+        if (isReceiverRegistered) {
+            return;
+        }
         VoiceConnectionService.setAvailable(false);
         this._settings = options;
         if (isConnectionServiceAvailable()) {
@@ -243,7 +248,6 @@ public class CallKeepModule {
         if (!isConnectionServiceAvailable()) {
             return;
         }
-
         voiceBroadcastReceiver = new VoiceBroadcastReceiver();
         registerReceiver();
         VoiceConnectionService.setPhoneAccountHandle(handle);
