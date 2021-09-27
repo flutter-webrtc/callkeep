@@ -39,8 +39,6 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
       (CallKeepPerformAnswerCallAction event) {
     print(
         'backgroundMessage: CallKeepPerformAnswerCallAction ${event.callUUID}');
-    _callKeep.startCall(event.callUUID, callerId, callerNmae);
-
     Timer(const Duration(seconds: 1), () {
       print(
           '[setCurrentCallActive] $callUUID, callerId: $callerId, callerName: $callerNmae');
@@ -54,24 +52,28 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
     print('backgroundMessage: CallKeepPerformEndCallAction ${event.callUUID}');
   });
   if (!_callKeepInited) {
-    _callKeep.setup(null, <String, dynamic>{
-      'ios': {
-        'appName': 'CallKeepDemo',
-      },
-      'android': {
-        'alertTitle': 'Permissions required',
-        'alertDescription':
-            'This application needs to access your phone accounts',
-        'cancelButton': 'Cancel',
-        'okButton': 'ok',
-        'foregroundService': {
-          'channelId': 'com.company.my',
-          'channelName': 'Foreground service for my app',
-          'notificationTitle': 'My app is running on background',
-          'notificationIcon': 'Path to the resource icon of the notification',
+    _callKeep.setup(
+        null,
+        <String, dynamic>{
+          'ios': {
+            'appName': 'CallKeepDemo',
+          },
+          'android': {
+            'alertTitle': 'Permissions required',
+            'alertDescription':
+                'This application needs to access your phone accounts',
+            'cancelButton': 'Cancel',
+            'okButton': 'ok',
+            'foregroundService': {
+              'channelId': 'com.company.my',
+              'channelName': 'Foreground service for my app',
+              'notificationTitle': 'My app is running on background',
+              'notificationIcon':
+                  'Path to the resource icon of the notification',
+            },
+          },
         },
-      },
-    });
+        backgroundMode: true);
     _callKeepInited = true;
   }
 
@@ -161,8 +163,6 @@ class _MyAppState extends State<HomePage> {
     final String callUUID = event.callUUID;
     final String number = calls[callUUID].number;
     print('[answerCall] $callUUID, number: $number');
-
-    _callKeep.startCall(event.callUUID, number, number);
     Timer(const Duration(seconds: 1), () {
       print('[setCurrentCallActive] $callUUID, number: $number');
       _callKeep.setCurrentCallActive(callUUID);
@@ -320,6 +320,12 @@ class _MyAppState extends State<HomePage> {
             'This application needs to access your phone accounts',
         'cancelButton': 'Cancel',
         'okButton': 'ok',
+        'foregroundService': {
+          'channelId': 'com.company.my',
+          'channelName': 'Foreground service for my app',
+          'notificationTitle': 'My app is running on background',
+          'notificationIcon': 'Path to the resource icon of the notification',
+        },
       },
     });
 

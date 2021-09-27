@@ -32,11 +32,12 @@ class FlutterCallkeep extends EventManager {
   static const MethodChannel _event = MethodChannel('FlutterCallKeep.Event');
   BuildContext? _context;
 
-  Future<void> setup(
-      BuildContext? context, Map<String, dynamic> options) async {
+  Future<void> setup(BuildContext? context, Map<String, dynamic> options,
+      {bool backgroundMode = false}) async {
     _context = context;
     if (!isIOS) {
-      await _setupAndroid(options['android'] as Map<String, dynamic>);
+      await _setupAndroid(
+          options['android'] as Map<String, dynamic>, backgroundMode);
       return;
     }
     await _setupIOS(options['ios'] as Map<String, dynamic>);
@@ -297,8 +298,14 @@ class FlutterCallkeep extends EventManager {
         .invokeMethod<void>('setup', <String, dynamic>{'options': options});
   }
 
-  Future<bool> _setupAndroid(Map<String, dynamic> options) async {
+  Future<bool> _setupAndroid(
+      Map<String, dynamic> options, bool backgroundMode) async {
     await _channel.invokeMethod<void>('setup', {'options': options});
+
+    if (backgroundMode) {
+      return true;
+    }
+
     final showAccountAlert = await _checkPhoneAccountPermission(
         options['additionalPermissions'] as List<String>);
     final shouldOpenAccounts = await _alert(options, showAccountAlert);
@@ -310,9 +317,7 @@ class FlutterCallkeep extends EventManager {
     return false;
   }
 
-  Future<void> openPhoneAccounts() async {
-    _openPhoneAccounts();
-  }
+  Future<void> openPhoneAccounts() => _openPhoneAccounts();
 
   Future<void> _openPhoneAccounts() async {
     if (!Platform.isAndroid) {
@@ -405,7 +410,7 @@ class FlutterCallkeep extends EventManager {
         emit(CallKeepDidActivateAudioSession());
         break;
       case 'CallKeepDidDeactivateAudioSession':
-        emit(CallKeepDidActivateAudioSession());
+        emit(CallKeepDidDeactivateAudioSession());
         break;
       case 'CallKeepDidDisplayIncomingCall':
         emit(CallKeepDidDisplayIncomingCall.fromMap(data));
