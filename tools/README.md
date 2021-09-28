@@ -1,6 +1,6 @@
 # CallKeep test tool
 
-This tool is used to demonstrate the basic push process for verifying callkeep. The tool is written in golang.
+This tool is used to demonstrate the basic push process for verifying callkeep. written in golang.
 
 prepare to run:
 
