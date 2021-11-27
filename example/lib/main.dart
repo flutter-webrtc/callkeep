@@ -30,7 +30,7 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
   print('backgroundMessage: message => ${message.toString()}');
   var payload = message['data'];
   var callerId = payload['caller_id'] as String;
-  var callerNmae = payload['caller_name'] as String;
+  var callerName = payload['caller_name'] as String;
   var uuid = payload['uuid'] as String;
   var hasVideo = payload['has_video'] == "true";
 
@@ -41,7 +41,7 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
         'backgroundMessage: CallKeepPerformAnswerCallAction ${event.callUUID}');
     Timer(const Duration(seconds: 1), () {
       print(
-          '[setCurrentCallActive] $callUUID, callerId: $callerId, callerName: $callerNmae');
+          '[setCurrentCallActive] $callUUID, callerId: $callerId, callerName: $callerName');
       _callKeep.setCurrentCallActive(callUUID);
     });
     //_callKeep.endCall(event.callUUID);
@@ -79,7 +79,7 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
 
   print('backgroundMessage: displayIncomingCall ($callerId)');
   _callKeep.displayIncomingCall(callUUID, callerId,
-      localizedCallerName: callerNmae, hasVideo: hasVideo);
+      localizedCallerName: callerName, hasVideo: hasVideo);
   _callKeep.backToForeground();
   /*
 
