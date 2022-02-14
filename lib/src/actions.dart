@@ -40,12 +40,14 @@ class CallKeepDidDisplayIncomingCall extends EventType {
         handle = arguments['handle'] as String,
         localizedCallerName = arguments['localizedCallerName'] as String,
         hasVideo = arguments['hasVideo'] as bool,
-        fromPushKit = arguments['fromPushKit'] as bool;
+        fromPushKit = arguments['fromPushKit'] as bool,
+        payload = arguments['payload'] as Map<dynamic,dynamic>;
   String? callUUID;
   String? handle;
   String? localizedCallerName;
   bool? hasVideo;
   bool? fromPushKit;
+  Map<dynamic,dynamic>? payload;
 }
 
 class CallKeepDidPerformSetMutedCallAction extends EventType {
