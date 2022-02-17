@@ -79,6 +79,10 @@ public class VoiceConnectionService extends ConnectionService {
         return null;
     }
 
+    public static List<String> getActiveConnections() {
+        return new ArrayList<>(currentConnections.keySet());
+    }
+
     public VoiceConnectionService() {
         super();
         Log.e(TAG, "Constructor");
