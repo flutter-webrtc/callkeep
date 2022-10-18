@@ -94,6 +94,9 @@ static CXProvider* sharedProvider;
     else if ([@"isCallActive" isEqualToString:method]) {
         result(@([self isCallActive:argsMap[@"uuid"]]));
     }
+    else if ([@"activeCalls" isEqualToString:method]) {
+        result([self activeCalls]);
+    }
     else if ([@"endCall" isEqualToString:method]) {
         [self endCall:argsMap[@"uuid"]];
         result(nil);
@@ -346,6 +349,24 @@ contactIdentifier:(NSString * _Nullable)contactIdentifier
         CXTransaction *transaction = [[CXTransaction alloc] initWithAction:endCallAction];
         [self requestTransaction:transaction];
     }
+}
+
+-(NSArray*)activeCalls
+{
+#ifdef DEBUG
+    NSLog(@"[CallKeep][activeCalls]");
+#endif
+    CXCallObserver *callObserver = [[CXCallObserver alloc] init];
+
+    NSMutableString *uuids = [NSMutableString string];
+
+    for(CXCall *call in callObserver.calls){
+        NSLog(@"[CallKeep] activeCall %@ ", call.UUID);
+        NSString *uuid = [call.UUID UUIDString];
+        [uuids appendString: uuid];
+    }
+
+    return [NSArray arrayWithObject:uuids];
 }
 
 -(void) setOnHold:(NSString *)uuidString shouldHold:(BOOL)shouldHold

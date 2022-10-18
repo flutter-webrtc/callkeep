@@ -213,6 +213,14 @@ public class CallKeepModule {
                 result.success(null);
             }
             break;
+            case "isCallActive": {
+                isCallActive((String)call.argument("uuid"), result);
+            }
+            break;
+            case "activeCalls": {
+                activeCalls(result);
+            }
+            break;
             default:
                 return false;
         }
@@ -498,6 +506,25 @@ public class CallKeepModule {
     
     public void hasPermissions(@NonNull MethodChannel.Result result) {
         result.success(this.hasPermissions());
+    }
+
+    public void isCallActive(String uuid, @NonNull MethodChannel.Result result) {
+        if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
+            result.success(false);
+            return;
+        }
+
+        Connection conn = VoiceConnectionService.getConnection(uuid);
+        result.success(conn != null);
+    }
+
+    public void activeCalls(@NonNull MethodChannel.Result result) {
+        if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
+            result.success(new ArrayList<>());
+            return;
+        }
+
+        result.success(VoiceConnectionService.getActiveConnections());
     }
 
     
