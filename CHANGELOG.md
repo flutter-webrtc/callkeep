@@ -1,6 +1,10 @@
 # Changelog
 
 -----------------------------------------------
+[0.3.3] - 2023.01.25
+
+* [fix] Remove as `type` to allow null assignment.
+
 [0.3.2] - 2021.09.27
 
 * [feat] Add backgroundMode for setup.
