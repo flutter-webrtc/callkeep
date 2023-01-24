@@ -3,9 +3,9 @@ import 'event.dart';
 class CallKeepDidReceiveStartCallAction extends EventType {
   CallKeepDidReceiveStartCallAction();
   CallKeepDidReceiveStartCallAction.fromMap(Map<dynamic, dynamic> arguments)
-      : callUUID = arguments['callUUID'] as String,
-        handle = arguments['handle'] as String,
-        name = arguments['name'] as String;
+      : callUUID = arguments['callUUID'],
+        handle = arguments['handle'],
+        name = arguments['name'];
   String? callUUID;
   String? handle;
   String? name;
@@ -14,14 +14,14 @@ class CallKeepDidReceiveStartCallAction extends EventType {
 class CallKeepPerformAnswerCallAction extends EventType {
   CallKeepPerformAnswerCallAction();
   CallKeepPerformAnswerCallAction.fromMap(Map<dynamic, dynamic> arguments)
-      : callUUID = arguments['callUUID'] as String;
+      : callUUID = arguments['callUUID'];
   String? callUUID;
 }
 
 class CallKeepPerformEndCallAction extends EventType {
   CallKeepPerformEndCallAction();
   CallKeepPerformEndCallAction.fromMap(Map<dynamic, dynamic> arguments)
-      : callUUID = arguments['callUUID'] as String;
+      : callUUID = arguments['callUUID'];
   String? callUUID;
 }
 
@@ -36,25 +36,25 @@ class CallKeepDidDeactivateAudioSession extends EventType {
 class CallKeepDidDisplayIncomingCall extends EventType {
   CallKeepDidDisplayIncomingCall();
   CallKeepDidDisplayIncomingCall.fromMap(Map<dynamic, dynamic> arguments)
-      : callUUID = arguments['callUUID'] as String,
-        handle = arguments['handle'] as String,
-        localizedCallerName = arguments['localizedCallerName'] as String,
-        hasVideo = arguments['hasVideo'] as bool,
-        fromPushKit = arguments['fromPushKit'] as bool,
-        payload = arguments['payload'] as Map<dynamic,dynamic>;
+      : callUUID = arguments['callUUID'],
+        handle = arguments['handle'],
+        localizedCallerName = arguments['localizedCallerName'],
+        hasVideo = arguments['hasVideo'],
+        fromPushKit = arguments['fromPushKit'],
+        payload = arguments['payload'];
   String? callUUID;
   String? handle;
   String? localizedCallerName;
   bool? hasVideo;
   bool? fromPushKit;
-  Map<dynamic,dynamic>? payload;
+  Map<dynamic, dynamic>? payload;
 }
 
 class CallKeepDidPerformSetMutedCallAction extends EventType {
   CallKeepDidPerformSetMutedCallAction();
   CallKeepDidPerformSetMutedCallAction.fromMap(Map<dynamic, dynamic> arguments)
-      : callUUID = arguments['callUUID'] as String,
-        muted = arguments['muted'] as bool;
+      : callUUID = arguments['callUUID'],
+        muted = arguments['muted'];
   String? callUUID;
   bool? muted;
 }
@@ -62,8 +62,8 @@ class CallKeepDidPerformSetMutedCallAction extends EventType {
 class CallKeepDidToggleHoldAction extends EventType {
   CallKeepDidToggleHoldAction();
   CallKeepDidToggleHoldAction.fromMap(Map<dynamic, dynamic> arguments)
-      : callUUID = arguments['callUUID'] as String,
-        hold = arguments['hold'] as bool;
+      : callUUID = arguments['callUUID'],
+        hold = arguments['hold'];
   String? callUUID;
   bool? hold;
 }
@@ -71,8 +71,8 @@ class CallKeepDidToggleHoldAction extends EventType {
 class CallKeepDidPerformDTMFAction extends EventType {
   CallKeepDidPerformDTMFAction();
   CallKeepDidPerformDTMFAction.fromMap(Map<dynamic, dynamic> arguments)
-      : callUUID = arguments['callUUID'] as String,
-        digits = arguments['digits'] as String;
+      : callUUID = arguments['callUUID'],
+        digits = arguments['digits'];
   String? callUUID;
   String? digits;
 }
@@ -92,6 +92,6 @@ class CallKeepDidLoadWithEvents extends EventType {
 class CallKeepPushKitToken extends EventType {
   CallKeepPushKitToken();
   CallKeepPushKitToken.fromMap(Map<dynamic, dynamic> arguments)
-      : token = arguments['token'] as String;
+      : token = arguments['token'];
   String? token;
 }
