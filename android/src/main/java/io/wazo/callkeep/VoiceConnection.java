@@ -17,11 +17,9 @@
 
 package io.wazo.callkeep;
 
-import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.telecom.CallAudioState;
@@ -30,31 +28,32 @@ import android.telecom.DisconnectCause;
 import android.telecom.TelecomManager;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.util.HashMap;
+import java.util.Map;
 
-import static io.wazo.callkeep.Constants.*;
+import static io.wazo.callkeep.CallKeepConstants.*;
 
-@TargetApi(Build.VERSION_CODES.M)
 public class VoiceConnection extends Connection {
-    private boolean isMuted = false;
-    private HashMap<String, String> handle;
-    private Context context;
     private static final String TAG = "RNCK:VoiceConnection";
+    private final HashMap<String, String> connectionData;
+    private final Context context;
 
-    VoiceConnection(Context context, HashMap<String, String> handle) {
+    VoiceConnection(@NonNull Context context, @NonNull HashMap<String, String> connectionData) {
         super();
-        this.handle = handle;
+        this.connectionData = connectionData;
         this.context = context;
 
-        String number = handle.get(EXTRA_CALL_NUMBER);
-        String name = handle.get(EXTRA_CALLER_NAME);
+        String number = connectionData.get(EXTRA_CALL_NUMBER);
+        String name = connectionData.get(EXTRA_CALLER_NAME);
 
         if (number != null) {
             setAddress(Uri.parse(number), TelecomManager.PRESENTATION_ALLOWED);
         }
+
         if (name != null && !name.equals("")) {
             setCallerDisplayName(name, TelecomManager.PRESENTATION_ALLOWED);
         }
@@ -63,20 +62,21 @@ public class VoiceConnection extends Connection {
     @Override
     public void onExtrasChanged(Bundle extras) {
         super.onExtrasChanged(extras);
-        HashMap attributeMap = (HashMap<String, String>)extras.getSerializable("attributeMap");
+        Map<String, String> attributeMap = (Map<String, String>) extras.getSerializable("attributeMap");
         if (attributeMap != null) {
-            handle = attributeMap;
+            connectionData.putAll(attributeMap);
         }
     }
 
     @Override
     public void onCallAudioStateChanged(CallAudioState state) {
-        if (state.isMuted() == this.isMuted) {
+        CallAudioState currentState = getCallAudioState();
+        super.onCallAudioStateChanged(state);
+        if (state.isMuted() == currentState.isMuted()) {
             return;
         }
 
-        this.isMuted = state.isMuted();
-        sendCallRequestToActivity(isMuted ? ACTION_MUTE_CALL : ACTION_UNMUTE_CALL, handle);
+        sendCallRequestToActivity(state.isMuted() ? ACTION_MUTE_CALL : ACTION_UNMUTE_CALL, connectionData);
     }
 
     @Override
@@ -90,33 +90,36 @@ public class VoiceConnection extends Connection {
     public void onAnswer(int videoState) {
         super.onAnswer(videoState);
         Log.d(TAG, "onAnswer videoState called: " + videoState);
+        startCall();
+        Log.d(TAG, "onAnswer videoState executed");
+    }
 
+    public void startCall() {
         setConnectionCapabilities(getConnectionCapabilities() | Connection.CAPABILITY_HOLD);
         setAudioModeIsVoip(true);
-
-        sendCallRequestToActivity(ACTION_ANSWER_CALL, handle);
-        sendCallRequestToActivity(ACTION_AUDIO_SESSION, handle);
-        Log.d(TAG, "onAnswer videoState executed");
+        sendCallRequestToActivity(ACTION_ANSWER_CALL, connectionData);
+        sendCallRequestToActivity(ACTION_AUDIO_SESSION, connectionData);
     }
 
     @Override
     public void onPlayDtmfTone(char dtmf) {
         try {
-            handle.put("DTMF", Character.toString(dtmf));
+            HashMap<String, String> data = new HashMap<>(connectionData);
+            data.put("DTMF", Character.toString(dtmf));
+            sendCallRequestToActivity(ACTION_DTMF_TONE, data);
         } catch (Throwable exception) {
             Log.e(TAG, "Handle map error", exception);
         }
-        sendCallRequestToActivity(ACTION_DTMF_TONE, handle);
     }
 
     @Override
     public void onDisconnect() {
         super.onDisconnect();
         setDisconnected(new DisconnectCause(DisconnectCause.LOCAL));
-        sendCallRequestToActivity(ACTION_END_CALL, handle);
+        sendCallRequestToActivity(ACTION_END_CALL, connectionData);
         Log.d(TAG, "onDisconnect executed");
         try {
-            ((VoiceConnectionService) context).deinitConnection(handle.get(EXTRA_CALL_UUID));
+            VoiceConnectionService.deinitConnection(connectionData.get(EXTRA_CALL_UUID));
         } catch(Throwable exception) {
             Log.e(TAG, "Handle map error", exception);
         }
@@ -145,7 +148,7 @@ public class VoiceConnection extends Connection {
             default:
                 break;
         }
-        ((VoiceConnectionService)context).deinitConnection(handle.get(EXTRA_CALL_UUID));
+        VoiceConnectionService.deinitConnection(connectionData.get(EXTRA_CALL_UUID));
         destroy();
     }
 
@@ -153,10 +156,10 @@ public class VoiceConnection extends Connection {
     public void onAbort() {
         super.onAbort();
         setDisconnected(new DisconnectCause(DisconnectCause.REJECTED));
-        sendCallRequestToActivity(ACTION_END_CALL, handle);
+        sendCallRequestToActivity(ACTION_END_CALL, connectionData);
         Log.d(TAG, "onAbort executed");
         try {
-            ((VoiceConnectionService) context).deinitConnection(handle.get(EXTRA_CALL_UUID));
+            VoiceConnectionService.deinitConnection(connectionData.get(EXTRA_CALL_UUID));
         } catch(Throwable exception) {
             Log.e(TAG, "Handle map error", exception);
         }
@@ -167,13 +170,13 @@ public class VoiceConnection extends Connection {
     public void onHold() {
         super.onHold();
         this.setOnHold();
-        sendCallRequestToActivity(ACTION_HOLD_CALL, handle);
+        sendCallRequestToActivity(ACTION_HOLD_CALL, connectionData);
     }
 
     @Override
     public void onUnhold() {
         super.onUnhold();
-        sendCallRequestToActivity(ACTION_UNHOLD_CALL, handle);
+        sendCallRequestToActivity(ACTION_UNHOLD_CALL, connectionData);
         setActive();
     }
 
@@ -181,10 +184,10 @@ public class VoiceConnection extends Connection {
     public void onReject() {
         super.onReject();
         setDisconnected(new DisconnectCause(DisconnectCause.REJECTED));
-        sendCallRequestToActivity(ACTION_END_CALL, handle);
+        sendCallRequestToActivity(ACTION_END_CALL, connectionData);
         Log.d(TAG, "onReject executed");
         try {
-            ((VoiceConnectionService) context).deinitConnection(handle.get(EXTRA_CALL_UUID));
+            VoiceConnectionService.deinitConnection(connectionData.get(EXTRA_CALL_UUID));
         } catch(Throwable exception) {
             Log.e(TAG, "Handle map error", exception);
         }
@@ -194,21 +197,18 @@ public class VoiceConnection extends Connection {
     /*
      * Send call request to the RNCallKeepModule
      */
-    private void sendCallRequestToActivity(final String action, @Nullable final HashMap attributeMap) {
-        final VoiceConnection instance = this;
+    private void sendCallRequestToActivity(String action, @Nullable HashMap<String, String> attributeMap) {
         final Handler handler = new Handler();
-
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                Intent intent = new Intent(action);
-                if (attributeMap != null) {
-                    Bundle extras = new Bundle();
-                    extras.putSerializable("attributeMap", attributeMap);
-                    intent.putExtras(extras);
-                }
-                LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+        handler.post(() -> {
+            Intent intent = new Intent(action);
+            if (attributeMap != null) {
+                Bundle extras = new Bundle();
+                extras.putSerializable("attributeMap", attributeMap);
+                intent.putExtras(extras);
             }
+            LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
         });
     }
+
+
 }

@@ -1,5 +1,5 @@
 abstract class EventType {
-  EventType();
+  const EventType();
   void sanityCheck() {}
 }
 
@@ -43,8 +43,6 @@ class EventManager {
   ///  -- do something here
   /// });
   void on<T extends EventType>(T eventType, void Function(T event) listener) {
-    assert(listener != null, 'Null listener');
-    assert(eventType != null, 'Null eventType');
     _addListener(eventType.runtimeType, listener);
   }
 

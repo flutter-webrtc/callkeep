@@ -1,17 +1,16 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/services.dart';
+
 import 'package:flutter/material.dart'
     show
         AlertDialog,
         BuildContext,
-        FlatButton,
         Navigator,
         Text,
         TextButton,
         Widget,
         showDialog;
-import 'package:flutter/services.dart' show MethodChannel;
+import 'package:flutter/services.dart';
 
 import 'actions.dart';
 import 'event.dart';
@@ -32,8 +31,11 @@ class FlutterCallkeep extends EventManager {
   static const MethodChannel _event = MethodChannel('FlutterCallKeep.Event');
   BuildContext? _context;
 
-  Future<void> setup(BuildContext? context, Map<String, dynamic> options,
-      {bool backgroundMode = false}) async {
+  Future<void> setup(
+    BuildContext? context,
+    Map<String, dynamic> options, {
+    bool backgroundMode = false,
+  }) async {
     _context = context;
     if (!isIOS) {
       await _setupAndroid(
@@ -59,7 +61,9 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<bool> hasDefaultPhoneAccount(
-      BuildContext context, Map<String, dynamic> options) async {
+    BuildContext context,
+    Map<String, dynamic> options,
+  ) async {
     _context = context;
     if (!isIOS) {
       return await _hasDefaultPhoneAccount(options);
@@ -84,25 +88,21 @@ class FlutterCallkeep extends EventManager {
     return false;
   }
 
-  Future<void> displayIncomingCall(String uuid, String handle,
-      {String localizedCallerName = '',
-      String handleType = 'number',
-      bool hasVideo = false}) async {
-    if (!isIOS) {
-      await _channel.invokeMethod<void>(
-          'displayIncomingCall', <String, dynamic>{
-        'uuid': uuid,
-        'handle': handle,
-        'localizedCallerName': localizedCallerName
-      });
-      return;
-    }
+  Future<void> displayIncomingCall(
+    String uuid,
+    String handle, {
+    String callerName = '',
+    String handleType = 'number',
+    bool hasVideo = false,
+    Map<String, dynamic> additionalData = const {},
+  }) async {
     await _channel.invokeMethod<void>('displayIncomingCall', <String, dynamic>{
       'uuid': uuid,
       'handle': handle,
       'handleType': handleType,
       'hasVideo': hasVideo,
-      'localizedCallerName': localizedCallerName
+      'callerName': callerName,
+      'additionalData': additionalData
     });
   }
 
@@ -113,22 +113,21 @@ class FlutterCallkeep extends EventManager {
     }
   }
 
-  Future<void> startCall(String uuid, String number, String callerName,
-      {String handleType = 'number', bool hasVideo = false}) async {
-    if (!isIOS) {
-      await _channel.invokeMethod<void>('startCall', <String, dynamic>{
-        'uuid': uuid,
-        'number': number,
-        'callerName': callerName
-      });
-      return;
-    }
+  Future<void> startCall(
+    String uuid,
+    String handle,
+    String callerName, {
+    String handleType = 'number',
+    bool hasVideo = false,
+    Map<String, dynamic> additionalData = const {},
+  }) async {
     await _channel.invokeMethod<void>('startCall', <String, dynamic>{
       'uuid': uuid,
-      'number': number,
+      'handle': handle,
       'callerName': callerName,
       'handleType': handleType,
-      'hasVideo': hasVideo
+      'hasVideo': hasVideo,
+      'additionalData': additionalData
     });
   }
 
@@ -181,8 +180,9 @@ class FlutterCallkeep extends EventManager {
     if (resp != null) {
       var uuids = <String>[];
       resp.forEach((element) {
-        if (element != null && element is String)
-        uuids.add(element);
+        if (element is String) {
+          uuids.add(element);
+        }
       });
       return uuids;
     }
@@ -342,7 +342,8 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<bool> _checkPhoneAccountPermission(
-      List<String>? optionalPermissions) async {
+    List<String>? optionalPermissions,
+  ) async {
     if (!Platform.isAndroid) {
       return true;
     }
@@ -357,7 +358,9 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<bool> _alert(
-      Map<String, dynamic> options, bool? showAccountAlert) async {
+    Map<String, dynamic> options,
+    bool? showAccountAlert,
+  ) async {
     if (_context == null ||
         (showAccountAlert != null && showAccountAlert == false)) {
       return false;
