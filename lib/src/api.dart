@@ -148,12 +148,8 @@ class FlutterCallkeep extends EventManager {
     }
   }
 
-  Future<void> reportConnectedOutgoingCallWithUUID(String uuid) async {
-    //only available on iOS
-    if (isIOS) {
-      await _channel.invokeMethod<void>('reportConnectedOutgoingCallWithUUID',
-          <String, dynamic>{'uuid': uuid});
-    }
+  Future<void> reportConnectedCallWithUUID(String uuid) async {
+    await _channel.invokeMethod<void>('reportConnectedCallWithUUID', <String, dynamic>{'uuid': uuid});
   }
 
   Future<void> reportEndCallWithUUID(String uuid, int reason) async =>
@@ -374,6 +370,7 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<bool> _alert(Map<String, dynamic> options) async {
+    if (_context == null) return false;
     var resp = await _showAlertDialog(
         _context!,
         options['alertTitle'] as String,
@@ -387,7 +384,7 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<bool?> _showAlertDialog(BuildContext context, String? alertTitle,
-      String? alertDescription, String? cancelButton, String? okButton) async {
+      String? alertDescription, String? cancelButton, String? okButton,) async {
     return await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(

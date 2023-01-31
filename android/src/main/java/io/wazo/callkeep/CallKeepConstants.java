@@ -3,6 +3,7 @@ package io.wazo.callkeep;
 public class CallKeepConstants {
     public static final String ACTION_ANSWER_CALL = "ACTION_ANSWER_CALL";
     public static final String ACTION_REJECT_CALL = "ACTION_REJECT_CALL";
+    public static final String ACTION_INCOMING_CALL = "ACTION_INCOMING_CALL";
     public static final String ACTION_AUDIO_SESSION = "ACTION_AUDIO_SESSION";
     public static final String ACTION_CHECK_REACHABILITY = "ACTION_CHECK_REACHABILITY";
     public static final String ACTION_DTMF_TONE = "ACTION_DTMF_TONE";

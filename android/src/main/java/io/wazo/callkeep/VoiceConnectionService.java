@@ -18,6 +18,7 @@
 package io.wazo.callkeep;
 
 import static io.wazo.callkeep.CallKeepConstants.ACTION_CHECK_REACHABILITY;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_ONGOING_CALL;
 import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALLER_NAME;
 import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALL_ATTRIB;
 import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALL_NUMBER;
@@ -56,7 +57,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import io.wazo.callkeep.utils.ConstraintsMap;
@@ -67,7 +67,7 @@ public class VoiceConnectionService extends ConnectionService {
     private static Boolean isInitialized;
     private static Boolean isReachable;
     private static PhoneAccountHandle phoneAccountHandle = null;
-    private static String TAG = "RNCK:VoiceConnectionService";
+    private static final String TAG = "RNCK:VoiceConnectionService";
     private static final Map<String, VoiceConnection> currentConnections = new HashMap<>();
     public static Boolean hasOutgoingCall = false;
     public static VoiceConnectionService currentConnectionService = null;
@@ -140,7 +140,7 @@ public class VoiceConnectionService extends ConnectionService {
     }
 
     private Connection makeIncomingCall(ConnectionRequest request) {
-        Connection connection = makeOngoingCall(request);
+        Connection connection = makeOngoingCall(request, TelecomManager.EXTRA_INCOMING_CALL_EXTRAS);
         connection.setRinging();
         return connection;
     }
@@ -156,26 +156,34 @@ public class VoiceConnectionService extends ConnectionService {
         return makeOutgoingCall(request);
     }
 
+    @Override
+    public void onCreateIncomingConnectionFailed(PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
+
+        super.onCreateIncomingConnectionFailed(connectionManagerPhoneAccount, request);
+    }
+
     private Connection makeOutgoingCall(ConnectionRequest request) {
         fixMissingNumber(request.getAddress(), request.getExtras());
         if (wakeAndCheckAvailability(request.getExtras(), false)) {
             return Connection.createFailedConnection(new DisconnectCause(DisconnectCause.LOCAL));
         } else {
-            VoiceConnection connection = makeOngoingCall(request);
+            VoiceConnection connection = makeOngoingCall(request, TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS);
             connection.setDialing();
-            connection.startCall();
+            sendCallRequestToActivity(ACTION_ONGOING_CALL, connection.getConnectionData());
+            connection.initCall();
             return connection;
         }
     }
 
-    private VoiceConnection makeOngoingCall(ConnectionRequest request) {
-        Bundle extras = request.getExtras();
+    private VoiceConnection makeOngoingCall(ConnectionRequest request, String extrasKey) {
+        Bundle extras = request.getExtras().getBundle(extrasKey);
+        assert extras != null;
         String extrasUuid = extras.getString(EXTRA_CALL_UUID);
         String extrasNumber = extras.getString(EXTRA_CALL_NUMBER);
         String displayName = extras.getString(EXTRA_CALLER_NAME);
         Log.d(TAG, "makeOngoingCall: " + extrasUuid + ", number: " + extrasNumber + ", displayName:" + displayName);
         // TODO: Hold all other calls
-        HashMap<String, String> extrasMap = this.bundleToMap(extras);
+        HashMap<String, Object> extrasMap = this.bundleToMap(extras);
         VoiceConnection connection = new VoiceConnection(this, extrasMap);
         initConnection(extrasUuid, connection, extras, request.getAccountHandle());
         startForegroundService();
@@ -363,13 +371,16 @@ public class VoiceConnectionService extends ConnectionService {
         });
     }
 
-    private HashMap<String, String> bundleToMap(Bundle extras) {
-        HashMap<String, String> extrasMap = new HashMap<>();
+    private HashMap<String, Object> bundleToMap(Bundle extras) {
+        HashMap<String, Object> extrasMap = new HashMap<>();
         Set<String> keySet = extras.keySet();
 
         for (String key : keySet) {
             if (extras.get(key) != null) {
-                extrasMap.put(key, extras.getString(key));
+                Object value = extras.get(key);
+                if (value != null) {
+                    extrasMap.put(key, value);
+                }
             }
         }
         return extrasMap;

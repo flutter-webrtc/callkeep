@@ -35,7 +35,7 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
   var hasVideo = payload['has_video'] == "true";
 
   final callUUID = uuid ?? Uuid().v4();
-  _callKeep.on(CallKeepPerformAnswerCallAction(),
+  _callKeep.on<CallKeepPerformAnswerCallAction>(
       (CallKeepPerformAnswerCallAction event) {
     print(
         'backgroundMessage: CallKeepPerformAnswerCallAction ${event.callData.callUUID}');
@@ -47,7 +47,7 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
     //_callKeep.endCall(event.callUUID);
   });
 
-  _callKeep.on(CallKeepPerformEndCallAction(),
+  _callKeep.on<CallKeepPerformEndCallAction>(
       (CallKeepPerformEndCallAction event) {
     print('backgroundMessage: CallKeepPerformEndCallAction ${event.callUUID}');
   });
@@ -303,16 +303,14 @@ class _MyAppState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _callKeep.on(CallKeepDidDisplayIncomingCall(), didDisplayIncomingCall);
-    _callKeep.on(CallKeepPerformAnswerCallAction(), answerCall);
-    _callKeep.on(CallKeepDidPerformDTMFAction(), didPerformDTMFAction);
-    _callKeep.on(
-        CallKeepDidReceiveStartCallAction(), didReceiveStartCallAction);
-    _callKeep.on(CallKeepDidToggleHoldAction(), didToggleHoldCallAction);
-    _callKeep.on(
-        CallKeepDidPerformSetMutedCallAction(), didPerformSetMutedCallAction);
-    _callKeep.on(CallKeepPerformEndCallAction(), endCall);
-    _callKeep.on(CallKeepPushKitToken(), onPushKitToken);
+    _callKeep.on<CallKeepDidDisplayIncomingCall>(didDisplayIncomingCall);
+    _callKeep.on<CallKeepPerformAnswerCallAction>(answerCall);
+    _callKeep.on<CallKeepDidPerformDTMFAction>(didPerformDTMFAction);
+    _callKeep.on<CallKeepDidReceiveStartCallAction>(didReceiveStartCallAction);
+    _callKeep.on<CallKeepDidToggleHoldAction>(didToggleHoldCallAction);
+    _callKeep.on<CallKeepDidPerformSetMutedCallAction>(didPerformSetMutedCallAction);
+    _callKeep.on<CallKeepPerformEndCallAction>(endCall);
+    _callKeep.on<CallKeepPushKitToken>(onPushKitToken);
 
     _callKeep.setup(context, <String, dynamic>{
       'ios': {

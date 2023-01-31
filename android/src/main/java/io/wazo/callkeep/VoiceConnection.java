@@ -17,6 +17,21 @@
 
 package io.wazo.callkeep;
 
+import static io.wazo.callkeep.CallKeepConstants.ACTION_ANSWER_CALL;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_AUDIO_SESSION;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_DTMF_TONE;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_END_CALL;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_HOLD_CALL;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_INCOMING_CALL;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_MUTE_CALL;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_REJECT_CALL;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_UNHOLD_CALL;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_UNMUTE_CALL;
+import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALLER_NAME;
+import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALL_ATTRIB;
+import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALL_NUMBER;
+import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALL_UUID;
+
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -34,22 +49,25 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static io.wazo.callkeep.CallKeepConstants.*;
+import java.util.Objects;
 
 public class VoiceConnection extends Connection {
     private static final String TAG = "RNCK:VoiceConnection";
-    private final HashMap<String, String> connectionData;
+    private final HashMap<String, Object> connectionData;
     private final Context context;
 
-    VoiceConnection(@NonNull Context context, @NonNull HashMap<String, String> connectionData) {
+    VoiceConnection(@NonNull Context context, @NonNull HashMap<String, Object> connectionData) {
         super();
         this.connectionData = connectionData;
         this.context = context;
 
-        String number = connectionData.get(EXTRA_CALL_NUMBER);
-        String name = connectionData.get(EXTRA_CALLER_NAME);
+        String number = (String) connectionData.get(EXTRA_CALL_NUMBER);
+        String name = (String) connectionData.get(EXTRA_CALLER_NAME);
         updateDisplay(name, number);
+    }
+
+    public HashMap<String, Object> getConnectionData() {
+        return new HashMap<>(connectionData);
     }
 
     public void updateDisplay(String callerName, String handle) {
@@ -72,12 +90,11 @@ public class VoiceConnection extends Connection {
 
     @Override
     public void onCallAudioStateChanged(CallAudioState state) {
-        CallAudioState currentState = getCallAudioState();
         super.onCallAudioStateChanged(state);
-        if (state.isMuted() == currentState.isMuted()) {
+        if (Objects.equals(connectionData.get("isMuted"), state.isMuted())) {
             return;
         }
-
+        connectionData.put("isMuted", state.isMuted());
         sendCallRequestToActivity(state.isMuted() ? ACTION_MUTE_CALL : ACTION_UNMUTE_CALL, connectionData);
     }
 
@@ -92,21 +109,32 @@ public class VoiceConnection extends Connection {
     public void onAnswer(int videoState) {
         super.onAnswer(videoState);
         Log.d(TAG, "onAnswer videoState called: " + videoState);
-        startCall();
+        onAnswered();
         Log.d(TAG, "onAnswer videoState executed");
     }
 
-    public void startCall() {
+    private void onAnswered() {
+        sendCallRequestToActivity(ACTION_ANSWER_CALL, connectionData);
+        initCall();
+        setActive();
+    }
+
+    public void initCall() {
         setConnectionCapabilities(getConnectionCapabilities() | Connection.CAPABILITY_HOLD);
         setAudioModeIsVoip(true);
-        sendCallRequestToActivity(ACTION_ANSWER_CALL, connectionData);
         sendCallRequestToActivity(ACTION_AUDIO_SESSION, connectionData);
+    }
+
+    @Override
+    public void onShowIncomingCallUi() {
+        sendCallRequestToActivity(ACTION_INCOMING_CALL, connectionData);
+        super.onShowIncomingCallUi();
     }
 
     @Override
     public void onPlayDtmfTone(char dtmf) {
         try {
-            HashMap<String, String> data = new HashMap<>(connectionData);
+            HashMap<String, Object> data = new HashMap<>(connectionData);
             data.put("DTMF", Character.toString(dtmf));
             sendCallRequestToActivity(ACTION_DTMF_TONE, data);
         } catch (Throwable exception) {
@@ -179,16 +207,21 @@ public class VoiceConnection extends Connection {
         Log.d(TAG, "onReject executed");
     }
 
+    public void onConnected() {
+        setActive();
+        Log.d(TAG, "onConnected executed");
+    }
+
     private void close(int causeCode) {
         setDisconnected(new DisconnectCause(causeCode));
-        VoiceConnectionService.deinitConnection(connectionData.get(EXTRA_CALL_UUID));
+        VoiceConnectionService.deinitConnection((String) connectionData.get(EXTRA_CALL_UUID));
         destroy();
     }
 
     /*
      * Send call request to the RNCallKeepModule
      */
-    private void sendCallRequestToActivity(String action, @Nullable HashMap<String, String> attributeMap) {
+    private void sendCallRequestToActivity(String action, @Nullable HashMap<String, Object> attributeMap) {
         final Handler handler = new Handler();
         handler.post(() -> {
             Intent intent = new Intent(action);
@@ -200,6 +233,5 @@ public class VoiceConnection extends Connection {
             LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
         });
     }
-
 
 }

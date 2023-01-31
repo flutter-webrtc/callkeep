@@ -16,6 +16,13 @@ class CallKeepPerformAnswerCallAction extends EventType {
   final CallData? callData;
 }
 
+class CallKeepShowIncomingCallAction extends EventType {
+  const CallKeepShowIncomingCallAction({this.callData});
+  CallKeepShowIncomingCallAction.fromMap(Map<dynamic, dynamic> arguments)
+      : callData = CallData.fromMap(arguments);
+  final CallData? callData;
+}
+
 class CallKeepPerformEndCallAction extends EventType {
   const CallKeepPerformEndCallAction({this.callUUID});
   CallKeepPerformEndCallAction.fromMap(Map<dynamic, dynamic> arguments)

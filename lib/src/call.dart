@@ -11,7 +11,7 @@ class CallData {
     final handle = arguments['handle'];
     final name = arguments['name'];
     final additionalData = arguments['additionalData'];
-    return CallData(callUUID, handle, name, additionalData);
+    return CallData(callUUID, handle, name, Map.from(additionalData));
   }
 
   final String callUUID;
