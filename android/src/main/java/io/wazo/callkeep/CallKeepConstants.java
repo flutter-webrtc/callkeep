@@ -2,6 +2,7 @@ package io.wazo.callkeep;
 
 public class CallKeepConstants {
     public static final String ACTION_ANSWER_CALL = "ACTION_ANSWER_CALL";
+    public static final String ACTION_REJECT_CALL = "ACTION_REJECT_CALL";
     public static final String ACTION_AUDIO_SESSION = "ACTION_AUDIO_SESSION";
     public static final String ACTION_CHECK_REACHABILITY = "ACTION_CHECK_REACHABILITY";
     public static final String ACTION_DTMF_TONE = "ACTION_DTMF_TONE";
@@ -17,6 +18,7 @@ public class CallKeepConstants {
     public static final String EXTRA_CALL_UUID = "EXTRA_CALL_UUID";
     public static final String EXTRA_CALL_DATA = "EXTRA_CALL_EXTRAS";
     public static final String EXTRA_CALLER_NAME = "EXTRA_CALLER_NAME";
+    public static final String EXTRA_CALL_ATTRIB = "EXTRA_CALL_ATTRIB";
 
     public static final int FOREGROUND_SERVICE_TYPE_MICROPHONE = 128;
 }

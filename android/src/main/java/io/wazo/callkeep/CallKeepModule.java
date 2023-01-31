@@ -40,15 +40,17 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.WindowManager;
 
+import androidx.annotation.ChecksSdkIntAtLeast;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodChannel;
@@ -63,37 +65,33 @@ import static io.wazo.callkeep.CallKeepConstants.*;
 
 // @see https://github.com/kbagchiGWC/voice-quickstart-android/blob/9a2aff7fbe0d0a5ae9457b48e9ad408740dfb968/exampleConnectionService/src/main/java/com/twilio/voice/examples/connectionservice/VoiceConnectionServiceActivity.java
 public class CallKeepModule {
-    public static final int REQUEST_READ_PHONE_STATE = 1337;
-    public static final int REQUEST_REGISTER_CALL_PROVIDER = 394859;
-
     private static final String E_ACTIVITY_DOES_NOT_EXIST = "E_ACTIVITY_DOES_NOT_EXIST";
-    private static final String REACT_NATIVE_MODULE_NAME = "CallKeep";
-    private static final String[] permissions = {Manifest.permission.READ_PHONE_STATE,
-            Manifest.permission.CALL_PHONE, Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_PHONE_NUMBERS};
+    private static final String E_CONNECTION_SERVICE_NOT_AVAILABLE = "E_CONNECTION_SERVICE_NOT_AVAILABLE";
 
     private static final String TAG = "FLT:CallKeepModule";
     private static TelecomManager telecomManager;
     private static TelephonyManager telephonyManager;
-    private Context _context;
+    private final Context context;
     public static PhoneAccountHandle accountHandle;
     private boolean isReceiverRegistered = false;
     private VoiceBroadcastReceiver voiceBroadcastReceiver;
-    private ConstraintsMap _settings;
-    Activity _currentActivity = null;
-    MethodChannel _eventChannel;
+    private ConstraintsMap settings;
+    private final List<String> requiredPermissions = new LinkedList<>();
+    private Activity currentActivity = null;
+    private final MethodChannel eventChannel;
 
     public CallKeepModule(Context context, BinaryMessenger messenger) {
-        this._context = context;
-        this._eventChannel = new MethodChannel(messenger, "FlutterCallKeep.Event");
+        this.context = context;
+        this.eventChannel = new MethodChannel(messenger, "FlutterCallKeep.Event");
     }
 
     public void setActivity(Activity activity) {
-        this._currentActivity = activity;
+        this.currentActivity = activity;
     }
 
     public void dispose() {
-        if (voiceBroadcastReceiver == null || this._context == null) return;
-        LocalBroadcastManager.getInstance(this._context).unregisterReceiver(voiceBroadcastReceiver);
+        if (voiceBroadcastReceiver == null || this.context == null) return;
+        LocalBroadcastManager.getInstance(this.context).unregisterReceiver(voiceBroadcastReceiver);
         VoiceConnectionService.setPhoneAccountHandle(null);
         isReceiverRegistered = false;
     }
@@ -141,7 +139,7 @@ public class CallKeepModule {
             }
             break;
             case "checkPhoneAccountPermission": {
-                checkPhoneAccountPermission(new ConstraintsArray(call.argument("optionalPermissions")), result);
+                checkPhoneAccountPermission(new ConstraintsArray(call.argument("additionalPermissions")), result);
             }
             break;
             case "checkDefaultPhoneAccount": {
@@ -174,7 +172,7 @@ public class CallKeepModule {
             }
             break;
             case "updateDisplay": {
-                updateDisplay(call.argument("uuid"), call.argument("displayName"), call.argument("handle"));
+                updateDisplay(call.argument("uuid"), call.argument("callerName"), call.argument("handle"));
                 result.success(null);
             }
             break;
@@ -214,7 +212,7 @@ public class CallKeepModule {
             }
             break;
             case "foregroundService": {
-                VoiceConnectionService.setSettings(new ConstraintsMap((Map<String, Object>) call.argument("settings")));
+                VoiceConnectionService.setSettings(new ConstraintsMap(call.argument("settings")));
                 result.success(null);
             }
             break;
@@ -233,30 +231,35 @@ public class CallKeepModule {
         return true;
     }
 
-    public void setup(ConstraintsMap options) {
+    private void setup(ConstraintsMap options) {
         if (isReceiverRegistered) {
             return;
         }
         VoiceConnectionService.setAvailable(false);
-        this._settings = options;
+        this.settings = options;
         if (isConnectionServiceAvailable()) {
-            this.registerPhoneAccount();
+            this.registerPhoneAccount(this.getAppContext(), options);
             this.registerEvents();
             VoiceConnectionService.setAvailable(true);
         }
-
         VoiceConnectionService.setSettings(options);
+        setupRequiredPermissions(options);
     }
 
-    public void registerPhoneAccount() {
-        if (!isConnectionServiceAvailable()) {
-            return;
+    private void setupRequiredPermissions(ConstraintsMap options) {
+        requiredPermissions.add(Manifest.permission.READ_PHONE_STATE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            requiredPermissions.add(Manifest.permission.READ_PHONE_NUMBERS);
         }
-        this.registerPhoneAccount(this.getAppContext());
+        if (isSelfManaged(options)) {
+            requiredPermissions.add(Manifest.permission.MANAGE_OWN_CALLS);
+        } else {
+            requiredPermissions.add(Manifest.permission.CALL_PHONE);
+        }
     }
 
 
-    public void registerEvents() {
+    private void registerEvents() {
         if (!isConnectionServiceAvailable()) {
             return;
         }
@@ -266,7 +269,7 @@ public class CallKeepModule {
     }
 
 
-    public void displayIncomingCall(String uuid, String handle, String callerName, Map<String, String> additionalData) {
+    private void displayIncomingCall(String uuid, String handle, String callerName, Map<String, String> additionalData) {
         if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
             return;
         }
@@ -285,7 +288,7 @@ public class CallKeepModule {
     }
 
 
-    public void answerIncomingCall(String uuid) {
+    private void answerIncomingCall(String uuid) {
         if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
             return;
         }
@@ -300,7 +303,7 @@ public class CallKeepModule {
 
 
     @SuppressLint("MissingPermission")
-    public void startCall(String uuid, String handle, String callerName, Map<String, String> additionalData) {
+    private void startCall(String uuid, String handle, String callerName, Map<String, String> additionalData) {
         if (!isConnectionServiceAvailable() || !hasPhoneAccount() || !hasPermissions() || handle == null) {
             return;
         }
@@ -314,7 +317,6 @@ public class CallKeepModule {
 
         extras.putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, accountHandle);
         extras.putBundle(TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS, callExtras);
-
         telecomManager.placeCall(uri, extras);
     }
 
@@ -329,7 +331,7 @@ public class CallKeepModule {
         return extras;
     }
 
-    public void endCall(String uuid) {
+    private void endCall(String uuid) {
         Log.d(TAG, "endCall called");
         if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
             return;
@@ -345,54 +347,49 @@ public class CallKeepModule {
     }
 
 
-    public void endAllCalls() {
+    private void endAllCalls() {
         Log.d(TAG, "endAllCalls called");
         if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
             return;
         }
 
-        Map<String, VoiceConnection> currentConnections = VoiceConnectionService.currentConnections;
-        for (Map.Entry<String, VoiceConnection> connectionEntry : currentConnections.entrySet()) {
-            Connection connectionToEnd = connectionEntry.getValue();
-            connectionToEnd.onDisconnect();
-        }
+        VoiceConnectionService.endAllCalls();
 
         Log.d(TAG, "endAllCalls executed");
     }
 
 
-    public void checkPhoneAccountPermission(ConstraintsArray optionalPermissions, @NonNull MethodChannel.Result result) {
+    private void checkPhoneAccountPermission(ConstraintsArray additionalPermissions, @NonNull MethodChannel.Result result) {
         if (!isConnectionServiceAvailable()) {
-            result.error(E_ACTIVITY_DOES_NOT_EXIST, "ConnectionService not available for this version of Android.", null);
+            result.error(E_CONNECTION_SERVICE_NOT_AVAILABLE, "ConnectionService not available for this version of Android.", null);
             return;
         }
-        if (_currentActivity == null) {
+
+        if (currentActivity == null) {
             result.error(E_ACTIVITY_DOES_NOT_EXIST, "Activity doesn't exist", null);
             return;
         }
-        String[] optionalPermsArr = new String[optionalPermissions.size()];
-        for (int i = 0; i < optionalPermissions.size(); i++) {
-            optionalPermsArr[i] = optionalPermissions.getString(i);
+
+        List<String> allPermissions = new LinkedList<>(requiredPermissions);
+        for (int i = 0; i < additionalPermissions.size(); i++) {
+            allPermissions.add(additionalPermissions.getString(i));
         }
 
-        String[] allPermissions = Arrays.copyOf(permissions, permissions.length + optionalPermsArr.length);
-        System.arraycopy(optionalPermsArr, 0, allPermissions, permissions.length, optionalPermsArr.length);
-
         if (!this.hasPermissions()) {
-            requestPermissions(
-                    allPermissions,
-                    grantedPermissions -> {
-                        result.success(grantedPermissions.size() == allPermissions.length);
-                    },
-                    failedPermissions -> result.success(false));
+            checkPhoneAccountPermission(
+                    currentActivity,
+                    allPermissions.toArray(new String[0]),
+                    grantedPermissions -> result.success(grantedPermissions.size() == allPermissions.size()),
+                    failedPermissions -> result.success(false)
+            );
             return;
         }
 
-        result.success(!hasPhoneAccount());
+        result.success(hasPhoneAccount());
     }
 
     @SuppressLint("MissingPermission")
-    public void checkDefaultPhoneAccount(@NonNull MethodChannel.Result result) {
+    private void checkDefaultPhoneAccount(@NonNull MethodChannel.Result result) {
         if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
             result.success(true);
             return;
@@ -405,13 +402,13 @@ public class CallKeepModule {
 
         boolean hasSim = telephonyManager.getSimState() != TelephonyManager.SIM_STATE_ABSENT;
 
-        boolean hasDefaultAccount = telecomManager.getDefaultOutgoingPhoneAccount("tel") != null;
+        boolean hasDefaultAccount = telecomManager.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL) != null;
 
-        result.success(!hasSim || hasDefaultAccount);
+        result.success(!hasSim || !hasDefaultAccount);
     }
 
 
-    public void setOnHold(String uuid, Boolean shouldHold) {
+    private void setOnHold(String uuid, Boolean shouldHold) {
         Connection conn = VoiceConnectionService.getConnection(uuid);
         if (conn == null) {
             return;
@@ -425,12 +422,12 @@ public class CallKeepModule {
     }
 
 
-    public void reportEndCallWithUUID(String uuid, int reason) {
+    private void reportEndCallWithUUID(String uuid, Integer reason) {
         if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
             return;
         }
 
-        VoiceConnection conn = (VoiceConnection) VoiceConnectionService.getConnection(uuid);
+        VoiceConnection conn = VoiceConnectionService.getConnection(uuid);
         if (conn == null) {
             return;
         }
@@ -438,7 +435,7 @@ public class CallKeepModule {
     }
 
 
-    public void rejectCall(String uuid) {
+    private void rejectCall(String uuid) {
         if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
             return;
         }
@@ -447,18 +444,17 @@ public class CallKeepModule {
         if (conn == null) {
             return;
         }
-
         conn.onReject();
     }
 
 
-    public void setMutedCall(String uuid, Boolean shouldMute) {
+    private void setMutedCall(String uuid, Boolean shouldMute) {
         Connection conn = VoiceConnectionService.getConnection(uuid);
         if (conn == null) {
             return;
         }
 
-        CallAudioState newAudioState = null;
+        CallAudioState newAudioState;
         //if the requester wants to mute, do that. otherwise unmute
         if (Boolean.TRUE.equals(shouldMute)) {
             newAudioState = new CallAudioState(true,
@@ -473,7 +469,7 @@ public class CallKeepModule {
     }
 
 
-    public void sendDTMF(String uuid, String key) {
+    private void sendDTMF(String uuid, String key) {
         Connection conn = VoiceConnectionService.getConnection(uuid);
         if (conn == null) {
             return;
@@ -482,36 +478,31 @@ public class CallKeepModule {
         conn.onPlayDtmfTone(dtmf);
     }
 
-    public void updateDisplay(String uuid, String displayName, String uri) {
-        Connection conn = VoiceConnectionService.getConnection(uuid);
+    private void updateDisplay(String uuid, String callerName, String handle) {
+        VoiceConnection conn = VoiceConnectionService.getConnection(uuid);
         if (conn == null) {
             return;
         }
-
-        conn.setAddress(Uri.parse(uri), TelecomManager.PRESENTATION_ALLOWED);
-        conn.setCallerDisplayName(displayName, TelecomManager.PRESENTATION_ALLOWED);
+        conn.updateDisplay(callerName, handle);
     }
 
 
-    public void hasPhoneAccount(@NonNull MethodChannel.Result result) {
-        if (telecomManager == null) {
-            this.initializeTelecomManager();
-        }
-
+    private void hasPhoneAccount(@NonNull MethodChannel.Result result) {
+        this.ensureTelecomManagerInitialize();
         result.success(hasPhoneAccount());
     }
 
 
-    public void hasOutgoingCall(@NonNull MethodChannel.Result result) {
+    private void hasOutgoingCall(@NonNull MethodChannel.Result result) {
         result.success(VoiceConnectionService.hasOutgoingCall);
     }
 
 
-    public void hasPermissions(@NonNull MethodChannel.Result result) {
+    private void hasPermissions(@NonNull MethodChannel.Result result) {
         result.success(this.hasPermissions());
     }
 
-    public void isCallActive(String uuid, @NonNull MethodChannel.Result result) {
+    private void isCallActive(String uuid, @NonNull MethodChannel.Result result) {
         if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
             result.success(false);
             return;
@@ -521,7 +512,7 @@ public class CallKeepModule {
         result.success(conn != null);
     }
 
-    public void activeCalls(@NonNull MethodChannel.Result result) {
+    private void activeCalls(@NonNull MethodChannel.Result result) {
         if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
             result.success(new ArrayList<>());
             return;
@@ -531,17 +522,17 @@ public class CallKeepModule {
     }
 
 
-    public void setAvailable(Boolean active) {
+    private void setAvailable(Boolean active) {
         VoiceConnectionService.setAvailable(active);
     }
 
 
-    public void setReachable() {
+    private void setReachable() {
         VoiceConnectionService.setReachable();
     }
 
 
-    public void setCurrentCallActive(String uuid) {
+    private void setCurrentCallActive(String uuid) {
         Connection conn = VoiceConnectionService.getConnection(uuid);
         if (conn == null) {
             return;
@@ -552,7 +543,7 @@ public class CallKeepModule {
     }
 
 
-    public void openPhoneAccounts(@NonNull MethodChannel.Result result) {
+    private void openPhoneAccounts(@NonNull MethodChannel.Result result) {
         if (!isConnectionServiceAvailable()) {
             result.error("ConnectionServiceNotAvailable", null, null);
             return;
@@ -563,29 +554,30 @@ public class CallKeepModule {
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             intent.setComponent(new ComponentName("com.android.server.telecom",
                     "com.android.server.telecom.settings.EnableAccountPreferenceActivity"));
-            this._currentActivity.startActivity(intent);
+            this.currentActivity.startActivity(intent);
             result.success(null);
             return;
         }
 
         Intent intent = new Intent(TelecomManager.ACTION_CHANGE_PHONE_ACCOUNTS);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
-        this._currentActivity.startActivity(intent);
+        this.currentActivity.startActivity(intent);
         result.success(null);
     }
 
-    public static Boolean isConnectionServiceAvailable() {
+    @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.M)
+    private static Boolean isConnectionServiceAvailable() {
         // PhoneAccount is available since api level 23
         return Build.VERSION.SDK_INT >= 23;
     }
 
 
     @SuppressLint("WrongConstant")
-    public void backToForeground(@NonNull MethodChannel.Result result) {
+    private void backToForeground(@NonNull MethodChannel.Result result) {
         Context context = getAppContext();
         String packageName = context.getPackageName();
-        Intent focusIntent = context.getPackageManager().getLaunchIntentForPackage(packageName).cloneFilter();
-        Activity activity = this._currentActivity;
+        Intent focusIntent = Objects.requireNonNull(context.getPackageManager().getLaunchIntentForPackage(packageName)).cloneFilter();
+        Activity activity = this.currentActivity;
         boolean isOpened = activity != null;
         Log.d(TAG, "backToForeground, app isOpened ?" + (isOpened ? "true" : "false"));
         if (isOpened) {
@@ -596,37 +588,24 @@ public class CallKeepModule {
                     WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED +
                     WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD +
                     WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
-            if (activity != null) {
-                activity.startActivity(focusIntent);
-            } else {
-                context.startActivity(focusIntent);
-            }
+            context.startActivity(focusIntent);
         }
         result.success(isOpened);
     }
 
-    private void initializeTelecomManager() {
-        Context context = this.getAppContext();
-        ComponentName cName = new ComponentName(context, VoiceConnectionService.class);
-        String appName = this.getApplicationName(context);
-
-        accountHandle = new PhoneAccountHandle(cName, appName);
-        telecomManager = (TelecomManager) context.getSystemService(Context.TELECOM_SERVICE);
-    }
-
-    private void registerPhoneAccount(Context appContext) {
-        if (!isConnectionServiceAvailable()) {
-            return;
-        }
-
-        this.initializeTelecomManager();
+    private void registerPhoneAccount(Context appContext, ConstraintsMap options) {
+        this.ensureTelecomManagerInitialize();
         String appName = this.getApplicationName(this.getAppContext());
 
-        PhoneAccount.Builder builder = new PhoneAccount.Builder(accountHandle, appName)
-                .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER);
+        PhoneAccount.Builder builder = new PhoneAccount.Builder(accountHandle, appName);
+        if (isSelfManaged(options)) {
+            builder.setCapabilities(PhoneAccount.CAPABILITY_SELF_MANAGED);
+        } else {
+            builder.setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER);
+        }
 
-        if (_settings != null && _settings.hasKey("imageName")) {
-            int identifier = appContext.getResources().getIdentifier(_settings.getString("imageName"), "drawable", appContext.getPackageName());
+        if (!options.isNull("imageName")) {
+            int identifier = appContext.getResources().getIdentifier(settings.getString("imageName"), "drawable", appContext.getPackageName());
             Icon icon = Icon.createWithResource(appContext, identifier);
             builder.setIcon(icon);
         }
@@ -638,8 +617,26 @@ public class CallKeepModule {
         telecomManager.registerPhoneAccount(account);
     }
 
+    private void ensureTelecomManagerInitialize() {
+        if (telecomManager == null) {
+            Context context = this.getAppContext();
+            ComponentName cName = new ComponentName(context, VoiceConnectionService.class);
+            String appName = this.getApplicationName(context);
+
+            accountHandle = new PhoneAccountHandle(cName, appName);
+            telecomManager = (TelecomManager) context.getSystemService(Context.TELECOM_SERVICE);
+        }
+    }
+
+    @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.O)
+    private boolean isSelfManaged(ConstraintsMap options) {
+        return !options.isNull("isSelfManaged") &&
+                options.getBoolean("isSelfManaged") &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O;
+    }
+
     private void sendEventToFlutter(String eventName, @NonNull ConstraintsMap params) {
-        _eventChannel.invokeMethod(eventName, params.toMap());
+        eventChannel.invokeMethod(eventName, params.toMap());
     }
 
     private String getApplicationName(Context appContext) {
@@ -651,8 +648,8 @@ public class CallKeepModule {
 
     private Boolean hasPermissions() {
         boolean hasPermissions = true;
-        for (String permission : permissions) {
-            int permissionCheck = ContextCompat.checkSelfPermission(_currentActivity, permission);
+        for (String permission : requiredPermissions) {
+            int permissionCheck = ContextCompat.checkSelfPermission(currentActivity, permission);
             if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
                 hasPermissions = false;
             }
@@ -662,8 +659,10 @@ public class CallKeepModule {
     }
 
     private static boolean hasPhoneAccount() {
-        return isConnectionServiceAvailable() && telecomManager != null
-                && telecomManager.getPhoneAccount(accountHandle) != null && telecomManager.getPhoneAccount(accountHandle).isEnabled();
+        return isConnectionServiceAvailable() &&
+                telecomManager != null &&
+                telecomManager.getPhoneAccount(accountHandle) != null &&
+                telecomManager.getPhoneAccount(accountHandle).isEnabled();
     }
 
     private void registerReceiver() {
@@ -671,6 +670,7 @@ public class CallKeepModule {
             IntentFilter intentFilter = new IntentFilter();
             intentFilter.addAction(ACTION_END_CALL);
             intentFilter.addAction(ACTION_ANSWER_CALL);
+            intentFilter.addAction(ACTION_REJECT_CALL);
             intentFilter.addAction(ACTION_MUTE_CALL);
             intentFilter.addAction(ACTION_UNMUTE_CALL);
             intentFilter.addAction(ACTION_DTMF_TONE);
@@ -679,20 +679,21 @@ public class CallKeepModule {
             intentFilter.addAction(ACTION_ONGOING_CALL);
             intentFilter.addAction(ACTION_AUDIO_SESSION);
             intentFilter.addAction(ACTION_CHECK_REACHABILITY);
-            LocalBroadcastManager.getInstance(this._context).registerReceiver(voiceBroadcastReceiver, intentFilter);
+            LocalBroadcastManager.getInstance(this.context).registerReceiver(voiceBroadcastReceiver, intentFilter);
             isReceiverRegistered = true;
         }
     }
 
     private Context getAppContext() {
-        return this._context.getApplicationContext();
+        return this.context.getApplicationContext();
     }
 
 
-    private void requestPermissions(
+    private void checkPhoneAccountPermission(
+            Activity activity,
             final String[] permissions,
             final Callback<List<String>> successCallback,
-            final Callback<List<String>> failedCallback) {
+            final Callback<List<String>> failureCallback) {
         PermissionUtils.Callback callback = (permissions_, grantResults) -> {
             List<String> grantedPermissions = new ArrayList<>();
             List<String> deniedPermissions = new ArrayList<>();
@@ -714,29 +715,30 @@ public class CallKeepModule {
                     // According to step 6 of the getUserMedia() algorithm
                     // "if the result is denied, jump to the step Permission
                     // Failure."
-                    failedCallback.invoke(deniedPermissions);
+                    failureCallback.invoke(deniedPermissions);
                     return;
                 }
             }
             successCallback.invoke(grantedPermissions);
         };
 
-        final Activity activity = _currentActivity;
-        if (activity != null) {
-            PermissionUtils.requestPermissions(activity, permissions, callback);
-        }
+        PermissionUtils.requestPermissions(activity, permissions, callback);
     }
 
     private class VoiceBroadcastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             ConstraintsMap args = new ConstraintsMap();
-            Map<String, String> attributeMap = (Map<String, String>) intent.getSerializableExtra("attributeMap");
+            Map<String, String> attributeMap = (Map<String, String>) intent.getSerializableExtra(EXTRA_CALL_ATTRIB);
 
-            switch (intent.getAction()) {
+            switch (Objects.requireNonNull(intent.getAction())) {
                 case ACTION_END_CALL:
                     args.putString("callUUID", attributeMap.get(EXTRA_CALL_UUID));
                     sendEventToFlutter("CallKeepPerformEndCallAction", args);
+                    break;
+                case ACTION_REJECT_CALL:
+                    args.putString("callUUID", attributeMap.get(EXTRA_CALL_UUID));
+                    sendEventToFlutter("CallKeepPerformRejectCallAction", args);
                     break;
                 case ACTION_ANSWER_CALL:
                     args.putString("callUUID", attributeMap.get(EXTRA_CALL_UUID));
@@ -784,15 +786,16 @@ public class CallKeepModule {
                     sendEventToFlutter("CallKeepCheckReachability", args);
                     break;
                 case ACTION_WAKE_APP:
-                    Intent headlessIntent = new Intent(_context, CallKeepBackgroundMessagingService.class);
+                    Intent headlessIntent = new Intent(CallKeepModule.this.context, CallKeepBackgroundMessagingService.class);
                     headlessIntent.putExtra("callUUID", attributeMap.get(EXTRA_CALL_UUID));
                     headlessIntent.putExtra("name", attributeMap.get(EXTRA_CALLER_NAME));
                     headlessIntent.putExtra("handle", attributeMap.get(EXTRA_CALL_NUMBER));
+                    headlessIntent.putExtra("additionalData", attributeMap.get(EXTRA_CALL_DATA));
                     Log.d(TAG, "wakeUpApplication: " + attributeMap.get(EXTRA_CALL_UUID) + ", number : " + attributeMap.get(EXTRA_CALL_NUMBER) + ", displayName:" + attributeMap.get(EXTRA_CALLER_NAME));
 
-                    ComponentName name = _context.startService(headlessIntent);
+                    ComponentName name = CallKeepModule.this.context.startService(headlessIntent);
                     if (name != null) {
-                        CallKeepBackgroundMessagingService.acquireWakeLockNow(_context);
+                        CallKeepBackgroundMessagingService.acquireWakeLockNow(CallKeepModule.this.context);
                     }
                     break;
             }

@@ -1,44 +1,31 @@
+import 'package:callkeep/src/call.dart';
+
 import 'event.dart';
 
 class CallKeepDidReceiveStartCallAction extends EventType {
-  const CallKeepDidReceiveStartCallAction({
-    this.callUUID,
-    this.handle,
-    this.name,
-    this.additionalData,
-  });
+  const CallKeepDidReceiveStartCallAction({this.callData});
   CallKeepDidReceiveStartCallAction.fromMap(Map<dynamic, dynamic> arguments)
-      : callUUID = arguments['callUUID'],
-        handle = arguments['handle'],
-        name = arguments['name'],
-        additionalData = arguments['additionalData'];
-  final String? callUUID;
-  final String? handle;
-  final String? name;
-  final Map<String, dynamic>? additionalData;
+      : callData = CallData.fromMap(arguments);
+  final CallData? callData;
 }
 
 class CallKeepPerformAnswerCallAction extends EventType {
-  const CallKeepPerformAnswerCallAction({
-    this.callUUID,
-    this.handle,
-    this.name,
-    this.additionalData,
-  });
+  const CallKeepPerformAnswerCallAction({this.callData});
   CallKeepPerformAnswerCallAction.fromMap(Map<dynamic, dynamic> arguments)
-      : callUUID = arguments['callUUID'],
-        handle = arguments['handle'],
-        name = arguments['name'],
-        additionalData = arguments['additionalData'];
-  final String? callUUID;
-  final String? handle;
-  final String? name;
-  final Map<String, dynamic>? additionalData;
+      : callData = CallData.fromMap(arguments);
+  final CallData? callData;
 }
 
 class CallKeepPerformEndCallAction extends EventType {
   const CallKeepPerformEndCallAction({this.callUUID});
   CallKeepPerformEndCallAction.fromMap(Map<dynamic, dynamic> arguments)
+      : callUUID = arguments['callUUID'];
+  final String? callUUID;
+}
+
+class CallKeepPerformRejectCallAction extends EventType {
+  const CallKeepPerformRejectCallAction({this.callUUID});
+  CallKeepPerformRejectCallAction.fromMap(Map<dynamic, dynamic> arguments)
       : callUUID = arguments['callUUID'];
   final String? callUUID;
 }
@@ -109,8 +96,6 @@ class CallKeepProviderReset extends EventType {
 class CallKeepCheckReachability extends EventType {
   const CallKeepCheckReachability();
 }
-
-
 
 class CallKeepDidLoadWithEvents extends EventType {
   const CallKeepDidLoadWithEvents();

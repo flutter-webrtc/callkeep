@@ -38,7 +38,7 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
   _callKeep.on(CallKeepPerformAnswerCallAction(),
       (CallKeepPerformAnswerCallAction event) {
     print(
-        'backgroundMessage: CallKeepPerformAnswerCallAction ${event.callUUID}');
+        'backgroundMessage: CallKeepPerformAnswerCallAction ${event.callData.callUUID}');
     Timer(const Duration(seconds: 1), () {
       print(
           '[setCurrentCallActive] $callUUID, callerId: $callerId, callerName: $callerName');
@@ -164,7 +164,7 @@ class _MyAppState extends State<HomePage> {
   }
 
   Future<void> answerCall(CallKeepPerformAnswerCallAction event) async {
-    final String callUUID = event.callUUID;
+    final String callUUID = event.callData.callUUID;
     final String number = calls[callUUID].number;
     print('[answerCall] $callUUID, number: $number');
     Timer(const Duration(seconds: 1), () {
@@ -183,21 +183,23 @@ class _MyAppState extends State<HomePage> {
   }
 
   Future<void> didReceiveStartCallAction(
-      CallKeepDidReceiveStartCallAction event) async {
-    if (event.handle == null) {
+    CallKeepDidReceiveStartCallAction event,
+  ) async {
+    final call = event.callData;
+    if (call.handle == null) {
       // @TODO: sometime we receive `didReceiveStartCallAction` with handle` undefined`
       return;
     }
-    final String callUUID = event.callUUID ?? newUUID();
+    final String callUUID = call.callUUID ?? newUUID();
     setState(() {
-      calls[callUUID] = Call(event.handle);
+      calls[callUUID] = Call(call.handle);
     });
-    print('[didReceiveStartCallAction] $callUUID, number: ${event.handle}');
+    print('[didReceiveStartCallAction] $callUUID, number: ${call.handle}');
 
-    _callKeep.startCall(callUUID, event.handle, event.handle);
+    _callKeep.startCall(callUUID, call.handle, call.handle);
 
     Timer(const Duration(seconds: 1), () {
-      print('[setCurrentCallActive] $callUUID, number: ${event.handle}');
+      print('[setCurrentCallActive] $callUUID, number: ${call.handle}');
       _callKeep.setCurrentCallActive(callUUID);
     });
   }
@@ -243,11 +245,9 @@ class _MyAppState extends State<HomePage> {
     final String number = calls[callUUID].number;
     // Workaround because Android doesn't display well displayName, se we have to switch ...
     if (isIOS) {
-      _callKeep.updateDisplay(callUUID,
-          displayName: 'New Name', handle: number);
+      _callKeep.updateDisplay(callUUID, callerName: 'New Name', handle: number);
     } else {
-      _callKeep.updateDisplay(callUUID,
-          displayName: number, handle: 'New Name');
+      _callKeep.updateDisplay(callUUID, callerName: number, handle: 'New Name');
     }
 
     print('[updateDisplay: $number] $callUUID');

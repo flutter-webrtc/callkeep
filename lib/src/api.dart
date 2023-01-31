@@ -39,10 +39,12 @@ class FlutterCallkeep extends EventManager {
     _context = context;
     if (!isIOS) {
       await _setupAndroid(
-          options['android'] as Map<String, dynamic>, backgroundMode);
+        options['android'],
+        backgroundMode,
+      );
       return;
     }
-    await _setupIOS(options['ios'] as Map<String, dynamic>);
+    await _setupIOS(options['ios']);
   }
 
   Future<void> registerPhoneAccount() async {
@@ -61,7 +63,7 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<bool> hasDefaultPhoneAccount(
-    BuildContext context,
+    BuildContext? context,
     Map<String, dynamic> options,
   ) async {
     _context = context;
@@ -74,18 +76,23 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<bool?> _checkDefaultPhoneAccount() async {
-    return await _channel
-        .invokeMethod<bool>('checkDefaultPhoneAccount', <String, dynamic>{});
+    return await _channel.invokeMethod<bool>(
+      'checkDefaultPhoneAccount',
+      <String, dynamic>{},
+    );
   }
 
   Future<bool> _hasDefaultPhoneAccount(Map<String, dynamic> options) async {
     final hasDefault = await _checkDefaultPhoneAccount();
-    final shouldOpenAccounts = await _alert(options, hasDefault);
-    if (shouldOpenAccounts) {
-      await _openPhoneAccounts();
-      return true;
+    if (hasDefault == true) {
+      final shouldOpenAccounts = await _alert(options);
+      if (shouldOpenAccounts) {
+        await _openPhoneAccounts();
+        return true;
+      }
+      return false;
     }
-    return false;
+    return true;
   }
 
   Future<void> displayIncomingCall(
@@ -109,7 +116,9 @@ class FlutterCallkeep extends EventManager {
   Future<void> answerIncomingCall(String uuid) async {
     if (!isIOS) {
       await _channel.invokeMethod<void>(
-          'answerIncomingCall', <String, dynamic>{'uuid': uuid});
+        'answerIncomingCall',
+        <String, dynamic>{'uuid': uuid},
+      );
     }
   }
 
@@ -253,11 +262,14 @@ class FlutterCallkeep extends EventManager {
         'setCurrentCallActive', <String, dynamic>{'uuid': callUUID});
   }
 
-  Future<void> updateDisplay(String uuid,
-          {required String displayName, required String handle}) async =>
+  Future<void> updateDisplay(
+    String uuid, {
+    required String callerName,
+    required String handle,
+  }) async =>
       await _channel.invokeMethod<void>('updateDisplay', <String, dynamic>{
         'uuid': uuid,
-        'displayName': displayName,
+        'callerName': callerName,
         'handle': handle
       });
 
@@ -274,15 +286,17 @@ class FlutterCallkeep extends EventManager {
 
   // @deprecated
   Future<void> reportUpdatedCall(
-      String uuid, String localizedCallerName) async {
+    String uuid,
+    String callerName,
+  ) async {
     print(
         'CallKeep.reportUpdatedCall is deprecated, use CallKeep.updateDisplay instead');
 
     return isIOS
-        ? await _channel.invokeMethod<void>(
-            'reportUpdatedCall', <String, dynamic>{
+        ? await _channel
+            .invokeMethod<void>('reportUpdatedCall', <String, dynamic>{
             'uuid': uuid,
-            'localizedCallerName': localizedCallerName
+            'callerName': callerName,
           })
         : throw Exception(
             'CallKeep.reportUpdatedCall was called from unsupported OS');
@@ -313,29 +327,34 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<bool> _setupAndroid(
-      Map<String, dynamic> options, bool backgroundMode) async {
+    Map<String, dynamic> options,
+    bool backgroundMode,
+  ) async {
     await _channel.invokeMethod<void>('setup', {'options': options});
 
     if (backgroundMode) {
       return true;
     }
 
-    final additionalPermissions = options['additionalPermissions'] ?? [];
-    final showAccountAlert = await _checkPhoneAccountPermission(
-        additionalPermissions.cast<String>() as List<String>);
-    final shouldOpenAccounts = await _alert(options, showAccountAlert);
-
-    if (shouldOpenAccounts) {
-      await _openPhoneAccounts();
-      return true;
+    final additionalPermissions = options['additionalPermissions'] as List?;
+    final hasPermissions = await _checkPhoneAccountPermission(
+      additionalPermissions?.cast<String>(),
+    );
+    if (!hasPermissions) {
+      final shouldOpenAccounts = await _alert(options);
+      if (shouldOpenAccounts) {
+        await _openPhoneAccounts();
+        return true;
+      }
+      return false;
     }
-    return false;
+    return true;
   }
 
   Future<void> openPhoneAccounts() => _openPhoneAccounts();
 
   Future<void> _openPhoneAccounts() async {
-    if (!Platform.isAndroid) {
+    if (isIOS) {
       return;
     }
     await _channel.invokeMethod<void>('openPhoneAccounts', <String, dynamic>{});
@@ -344,27 +363,17 @@ class FlutterCallkeep extends EventManager {
   Future<bool> _checkPhoneAccountPermission(
     List<String>? optionalPermissions,
   ) async {
-    if (!Platform.isAndroid) {
+    if (isIOS) {
       return true;
     }
     var resp = await _channel
         .invokeMethod<bool>('checkPhoneAccountPermission', <String, dynamic>{
-      'optionalPermissions': optionalPermissions ?? [],
+      'additionalPermissions': optionalPermissions ?? [],
     });
-    if (resp != null) {
-      return resp;
-    }
-    return false;
+    return resp ?? false;
   }
 
-  Future<bool> _alert(
-    Map<String, dynamic> options,
-    bool? showAccountAlert,
-  ) async {
-    if (_context == null ||
-        (showAccountAlert != null && showAccountAlert == false)) {
-      return false;
-    }
+  Future<bool> _alert(Map<String, dynamic> options) async {
     var resp = await _showAlertDialog(
         _context!,
         options['alertTitle'] as String,
@@ -420,6 +429,9 @@ class FlutterCallkeep extends EventManager {
         break;
       case 'CallKeepPerformAnswerCallAction':
         emit(CallKeepPerformAnswerCallAction.fromMap(data));
+        break;
+      case 'CallKeepPerformRejectCallAction':
+        emit(CallKeepPerformRejectCallAction.fromMap(data));
         break;
       case 'CallKeepPerformEndCallAction':
         emit(CallKeepPerformEndCallAction.fromMap(data));

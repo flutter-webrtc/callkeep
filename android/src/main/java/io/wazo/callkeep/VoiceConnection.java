@@ -49,20 +49,22 @@ public class VoiceConnection extends Connection {
 
         String number = connectionData.get(EXTRA_CALL_NUMBER);
         String name = connectionData.get(EXTRA_CALLER_NAME);
+        updateDisplay(name, number);
+    }
 
-        if (number != null) {
-            setAddress(Uri.parse(number), TelecomManager.PRESENTATION_ALLOWED);
+    public void updateDisplay(String callerName, String handle) {
+        if (handle != null) {
+            setAddress(Uri.parse(handle), TelecomManager.PRESENTATION_ALLOWED);
         }
-
-        if (name != null && !name.equals("")) {
-            setCallerDisplayName(name, TelecomManager.PRESENTATION_ALLOWED);
+        if (callerName != null) {
+            setCallerDisplayName(callerName, TelecomManager.PRESENTATION_ALLOWED);
         }
     }
 
     @Override
     public void onExtrasChanged(Bundle extras) {
         super.onExtrasChanged(extras);
-        Map<String, String> attributeMap = (Map<String, String>) extras.getSerializable("attributeMap");
+        Map<String, String> attributeMap = (Map<String, String>) extras.getSerializable(EXTRA_CALL_ATTRIB);
         if (attributeMap != null) {
             connectionData.putAll(attributeMap);
         }
@@ -115,55 +117,44 @@ public class VoiceConnection extends Connection {
     @Override
     public void onDisconnect() {
         super.onDisconnect();
-        setDisconnected(new DisconnectCause(DisconnectCause.LOCAL));
+        close(DisconnectCause.LOCAL);
         sendCallRequestToActivity(ACTION_END_CALL, connectionData);
         Log.d(TAG, "onDisconnect executed");
-        try {
-            VoiceConnectionService.deinitConnection(connectionData.get(EXTRA_CALL_UUID));
-        } catch(Throwable exception) {
-            Log.e(TAG, "Handle map error", exception);
-        }
-        destroy();
     }
 
     public void reportDisconnect(int reason) {
         super.onDisconnect();
+        int causeCode;
         switch (reason) {
             case 1:
-                setDisconnected(new DisconnectCause(DisconnectCause.ERROR));
+                causeCode = DisconnectCause.ERROR;
                 break;
             case 2:
             case 5:
-                setDisconnected(new DisconnectCause(DisconnectCause.REMOTE));
+                causeCode = DisconnectCause.REMOTE;
                 break;
             case 3:
-                setDisconnected(new DisconnectCause(DisconnectCause.BUSY));
+                causeCode = DisconnectCause.BUSY;
                 break;
             case 4:
-                setDisconnected(new DisconnectCause(DisconnectCause.ANSWERED_ELSEWHERE));
+                causeCode = DisconnectCause.ANSWERED_ELSEWHERE;
                 break;
             case 6:
-                setDisconnected(new DisconnectCause(DisconnectCause.MISSED));
+                causeCode = DisconnectCause.MISSED;
                 break;
             default:
+                causeCode = DisconnectCause.OTHER;
                 break;
         }
-        VoiceConnectionService.deinitConnection(connectionData.get(EXTRA_CALL_UUID));
-        destroy();
+        close(causeCode);
     }
 
     @Override
     public void onAbort() {
         super.onAbort();
-        setDisconnected(new DisconnectCause(DisconnectCause.REJECTED));
+        close(DisconnectCause.REJECTED);
         sendCallRequestToActivity(ACTION_END_CALL, connectionData);
         Log.d(TAG, "onAbort executed");
-        try {
-            VoiceConnectionService.deinitConnection(connectionData.get(EXTRA_CALL_UUID));
-        } catch(Throwable exception) {
-            Log.e(TAG, "Handle map error", exception);
-        }
-        destroy();
     }
 
     @Override
@@ -183,14 +174,14 @@ public class VoiceConnection extends Connection {
     @Override
     public void onReject() {
         super.onReject();
-        setDisconnected(new DisconnectCause(DisconnectCause.REJECTED));
-        sendCallRequestToActivity(ACTION_END_CALL, connectionData);
+        close(DisconnectCause.REJECTED);
+        sendCallRequestToActivity(ACTION_REJECT_CALL, connectionData);
         Log.d(TAG, "onReject executed");
-        try {
-            VoiceConnectionService.deinitConnection(connectionData.get(EXTRA_CALL_UUID));
-        } catch(Throwable exception) {
-            Log.e(TAG, "Handle map error", exception);
-        }
+    }
+
+    private void close(int causeCode) {
+        setDisconnected(new DisconnectCause(causeCode));
+        VoiceConnectionService.deinitConnection(connectionData.get(EXTRA_CALL_UUID));
         destroy();
     }
 
@@ -203,7 +194,7 @@ public class VoiceConnection extends Connection {
             Intent intent = new Intent(action);
             if (attributeMap != null) {
                 Bundle extras = new Bundle();
-                extras.putSerializable("attributeMap", attributeMap);
+                extras.putSerializable(EXTRA_CALL_ATTRIB, attributeMap);
                 intent.putExtras(extras);
             }
             LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
