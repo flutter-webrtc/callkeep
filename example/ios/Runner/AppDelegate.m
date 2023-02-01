@@ -8,6 +8,7 @@
     didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     [GeneratedPluginRegistrant registerWithRegistry:self];
     // Override point for customization after application launch.
+    [CallKeep setDelegate:self];
     return [super application:application didFinishLaunchingWithOptions:launchOptions];
 }
 
@@ -15,6 +16,11 @@
     return [CallKeep application:application
                         continueUserActivity:userActivity
                         restorationHandler:restorationHandler];
+}
+
+- (nonnull NSDictionary *)mapPushPayload:(NSDictionary * _Nonnull)payload {
+    NSLog(@"Mapper called with %@", [payload description]);
+    return payload;
 }
 
 @end

@@ -288,8 +288,8 @@ class _MyAppState extends State<HomePage> {
   }
 
   void didDisplayIncomingCall(CallKeepDidDisplayIncomingCall event) {
-    var callUUID = event.callUUID;
-    var number = event.handle;
+    var callUUID = event.callData.callUUID;
+    var number = event.callData.handle;
     print('[displayIncomingCall] $callUUID number: $number');
     setState(() {
       calls[callUUID] = Call(number);

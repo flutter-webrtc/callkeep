@@ -377,12 +377,11 @@ public class CallKeepModule {
             return;
         }
 
-        List<String> allPermissions = new LinkedList<>(requiredPermissions);
-        for (int i = 0; i < additionalPermissions.size(); i++) {
-            allPermissions.add(additionalPermissions.getString(i));
-        }
-
         if (!this.hasPermissions()) {
+            List<String> allPermissions = new LinkedList<>(requiredPermissions);
+            for (int i = 0; i < additionalPermissions.size(); i++) {
+                allPermissions.add(additionalPermissions.getString(i));
+            }
             checkPhoneAccountPermission(
                     currentActivity,
                     allPermissions.toArray(new String[0]),
@@ -779,14 +778,14 @@ public class CallKeepModule {
                     args.putString("callUUID", (String)attributeMap.get(EXTRA_CALL_UUID));
                     args.putString("handle", (String)attributeMap.get(EXTRA_CALL_NUMBER));
                     args.putString("name", (String)attributeMap.get(EXTRA_CALLER_NAME));
-                    args.putMap("additionalData", (Map)attributeMap.get(EXTRA_CALL_DATA));
+                    args.putMap("additionalData", (Map<String, Object>) attributeMap.get(EXTRA_CALL_DATA));
                     sendEventToFlutter("CallKeepPerformAnswerCallAction", args);
                     break;
                 case ACTION_INCOMING_CALL:
                     args.putString("callUUID", (String)attributeMap.get(EXTRA_CALL_UUID));
                     args.putString("handle", (String)attributeMap.get(EXTRA_CALL_NUMBER));
                     args.putString("name", (String)attributeMap.get(EXTRA_CALLER_NAME));
-                    args.putMap("additionalData", (Map)attributeMap.get(EXTRA_CALL_DATA));
+                    args.putMap("additionalData", (Map<String, Object>)attributeMap.get(EXTRA_CALL_DATA));
                     sendEventToFlutter("CallKeepShowIncomingCallAction", args);
                     break;
                 case ACTION_HOLD_CALL:
@@ -818,7 +817,7 @@ public class CallKeepModule {
                     args.putString("callUUID", (String)attributeMap.get(EXTRA_CALL_UUID));
                     args.putString("handle", (String)attributeMap.get(EXTRA_CALL_NUMBER));
                     args.putString("name", (String)attributeMap.get(EXTRA_CALLER_NAME));
-                    args.putMap("additionalData", (Map)attributeMap.get(EXTRA_CALL_DATA));
+                    args.putMap("additionalData", (Map<String, Object>)attributeMap.get(EXTRA_CALL_DATA));
                     sendEventToFlutter("CallKeepDidReceiveStartCallAction", args);
                     break;
                 case ACTION_AUDIO_SESSION:

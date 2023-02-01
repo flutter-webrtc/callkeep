@@ -43,6 +43,7 @@ static NSString *const CallKeepPushKitToken = @"CallKeepPushKitToken";
 }
 
 static CXProvider* sharedProvider;
+static NSObject<CallKeepPushDelegate>* _delegate;
 
 - (instancetype)init
 {
@@ -84,11 +85,11 @@ static CXProvider* sharedProvider;
         [self setup:argsMap[@"options"]];
         result(nil);
     } else if ([@"displayIncomingCall" isEqualToString:method]) {
-        [self displayIncomingCall:argsMap[@"uuid"] handle:argsMap[@"handle"] handleType:argsMap[@"handleType"] hasVideo:[argsMap[@"hasVideo"] boolValue] localizedCallerName:argsMap[@"localizedCallerName"]];
+        [self displayIncomingCall:argsMap[@"uuid"] handle:argsMap[@"handle"] handleType:argsMap[@"handleType"] hasVideo:[argsMap[@"hasVideo"] boolValue] callerName:argsMap[@"callerName"] payload:argsMap[@"additionalData"]];
         result(nil);
     }
     else if ([@ "startCall" isEqualToString:method]) {
-        [self startCall:argsMap[@"uuid"] handle:argsMap[@"number"] contactIdentifier:argsMap[@"callerName"] handleType:argsMap[@"handleType"] video:[argsMap[@"hasVideo"] boolValue]];
+        [self startCall:argsMap[@"uuid"] handle:argsMap[@"handle"] callerName:argsMap[@"callerName"] handleType:argsMap[@"handleType"] video:[argsMap[@"hasVideo"] boolValue]];
         result(nil);
     }
     else if ([@"isCallActive" isEqualToString:method]) {
@@ -122,7 +123,7 @@ static CXProvider* sharedProvider;
         result(nil);
     }
     else if ([@ "updateDisplay" isEqualToString:method]) {
-        [self updateDisplay:argsMap[@"uuid"] displayName:argsMap[@"displayName"] uri:argsMap[@"handle"]];
+        [self updateDisplay:argsMap[@"uuid"] callerName:argsMap[@"callerName"] uri:argsMap[@"handle"]];
         result(nil);
     }
     else if([@ "checkIfBusy" isEqualToString:method]){
@@ -134,11 +135,11 @@ static CXProvider* sharedProvider;
     else if ([@"reportConnectingOutgoingCallWithUUID" isEqualToString:method]) {
         [self reportConnectingOutgoingCallWithUUID:argsMap[@"uuid"]];
     }
-    else if ([@"reportConnectedOutgoingCallWithUUID" isEqualToString:method]) {
-        [self reportConnectedOutgoingCallWithUUID:argsMap[@"uuid"]];
+    else if ([@"reportConnectedCallWithUUID" isEqualToString:method]) {
+        [self reportConnectedCallWithUUID:argsMap[@"uuid"]];
     }
     else if([@"reportUpdatedCall" isEqualToString:method]){
-        [self reportUpdatedCall:argsMap[@"uuid"] contactIdentifier:argsMap[@"localizedCallerName"]];
+        [self reportUpdatedCall:argsMap[@"uuid"] contactIdentifier:argsMap[@"callerName"]];
         result(nil);
     }
     else {
@@ -196,6 +197,10 @@ static CXProvider* sharedProvider;
 
 #pragma mark - PushKit
 
++ (void)setDelegate:(NSObject<CallKeepPushDelegate>* _Nullable)delegate {
+    _delegate = delegate;
+}
+
 -(void)voipRegistration
 {
     PKPushRegistry* voipRegistry = [[PKPushRegistry alloc] initWithQueue:dispatch_get_main_queue()];
@@ -239,7 +244,11 @@ static CXProvider* sharedProvider;
 
     NSDictionary *dic = payload.dictionaryPayload;
 
-    if (dic[@"aps"] != nil) {
+    if (_delegate) {
+        dic = [_delegate mapPushPayload:dic];
+    }
+    
+    if (!dic || dic[@"aps"] != nil) {
         NSLog(@"Do not use the 'alert' format for push type %@.", payload.type);
         if(completion != nil) {
             completion();
@@ -258,13 +267,12 @@ static CXProvider* sharedProvider;
         uuid = [self createUUID];
     }
 
-    //NSDictionary *extra = payload.dictionaryPayload[@"extra"];
 
     [CallKeep reportNewIncomingCall:uuid
                              handle:callerId
                          handleType:callerIdType
                            hasVideo:hasVideo
-                localizedCallerName:callerName
+                         callerName:callerName
                         fromPushKit:YES
                             payload:dic
               withCompletionHandler:completion];
@@ -301,14 +309,15 @@ static CXProvider* sharedProvider;
                      handle:(NSString *)handle
                  handleType:(NSString *)handleType
                    hasVideo:(BOOL)hasVideo
-        localizedCallerName:(NSString * _Nullable)localizedCallerName
+                 callerName:(NSString * _Nullable)callerName
+                    payload:(NSDictionary * _Nullable)payload
 {
-    [CallKeep reportNewIncomingCall: uuidString handle:handle handleType:handleType hasVideo:hasVideo localizedCallerName:localizedCallerName fromPushKit: NO payload:nil withCompletionHandler:nil];
+    [CallKeep reportNewIncomingCall: uuidString handle:handle handleType:handleType hasVideo:hasVideo callerName:callerName fromPushKit: NO payload:payload withCompletionHandler:nil];
 }
 
 -(void) startCall:(NSString *)uuidString
            handle:(NSString *)handle
-contactIdentifier:(NSString * _Nullable)contactIdentifier
+       callerName:(NSString * _Nullable)callerName
        handleType:(NSString *)handleType
             video:(BOOL)video
 {
@@ -320,7 +329,7 @@ contactIdentifier:(NSString * _Nullable)contactIdentifier
     CXHandle *callHandle = [[CXHandle alloc] initWithType:_handleType value:handle];
     CXStartCallAction *startCallAction = [[CXStartCallAction alloc] initWithCallUUID:uuid handle:callHandle];
     [startCallAction setVideo:video];
-    [startCallAction setContactIdentifier:contactIdentifier];
+    [startCallAction setContactIdentifier:callerName];
     
     CXTransaction *transaction = [[CXTransaction alloc] initWithAction:startCallAction];
     
@@ -388,7 +397,7 @@ contactIdentifier:(NSString * _Nullable)contactIdentifier
     [self.callKeepProvider reportOutgoingCallWithUUID:uuid startedConnectingAtDate:[NSDate date]];
 }
 
--(void) reportConnectedOutgoingCallWithUUID:(NSString *)uuidString
+-(void) reportConnectedCallWithUUID:(NSString *)uuidString
 {
     NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:uuidString];
     [self.callKeepProvider reportOutgoingCallWithUUID:uuid connectedAtDate:[NSDate date]];
@@ -399,15 +408,15 @@ contactIdentifier:(NSString * _Nullable)contactIdentifier
     [CallKeep endCallWithUUID: uuidString reason:reason];
 }
 
--(void) updateDisplay:(NSString *)uuidString displayName:(NSString *)displayName uri:(NSString *)uri
+-(void) updateDisplay:(NSString *)uuidString callerName:(NSString *)callerName uri:(NSString *)uri
 {
 #ifdef DEBUG
-    NSLog(@"[CallKeep][updateDisplay] uuidString = %@ displayName = %@ uri = %@", uuidString, displayName, uri);
+    NSLog(@"[CallKeep][updateDisplay] uuidString = %@ displayName = %@ uri = %@", uuidString, callerName, uri);
 #endif
     NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:uuidString];
     CXHandle *callHandle = [[CXHandle alloc] initWithType:CXHandleTypePhoneNumber value:uri];
     CXCallUpdate *callUpdate = [[CXCallUpdate alloc] init];
-    callUpdate.localizedCallerName = displayName;
+    callUpdate.localizedCallerName = callerName;
     callUpdate.remoteHandle = callHandle;
     [self.callKeepProvider reportCallWithUUID:uuid updated:callUpdate];
 }
@@ -522,18 +531,29 @@ contactIdentifier:(NSString * _Nullable)contactIdentifier
                        handle:(NSString *)handle
                    handleType:(NSString *)handleType
                      hasVideo:(BOOL)hasVideo
-          localizedCallerName:(NSString * _Nullable)localizedCallerName
+                   callerName:(NSString * _Nullable)callerName
                   fromPushKit:(BOOL)fromPushKit
                       payload:(NSDictionary * _Nullable)payload
 {
-    [CallKeep reportNewIncomingCall:uuidString handle:handle handleType:handleType hasVideo:hasVideo localizedCallerName:localizedCallerName fromPushKit:fromPushKit payload:payload withCompletionHandler:nil];
+    [CallKeep reportNewIncomingCall:uuidString handle:handle handleType:handleType hasVideo:hasVideo callerName:callerName fromPushKit:fromPushKit payload:payload withCompletionHandler:nil];
+}
+
+
++ (void)reportNewIncomingCall:(NSString *)uuidString
+                       handle:(NSString *)handle
+                   handleType:(NSString *)handleType
+                     hasVideo:(BOOL)hasVideo
+                   callerName:(NSString * _Nullable)callerName
+                  fromPushKit:(BOOL)fromPushKit
+{
+    [CallKeep reportNewIncomingCall: uuidString handle:handle handleType:handleType hasVideo:hasVideo callerName:callerName fromPushKit: fromPushKit payload:nil withCompletionHandler:nil];
 }
 
 + (void)reportNewIncomingCall:(NSString *)uuidString
                        handle:(NSString *)handle
                    handleType:(NSString *)handleType
                      hasVideo:(BOOL)hasVideo
-          localizedCallerName:(NSString * _Nullable)localizedCallerName
+                   callerName:(NSString * _Nullable)callerName
                   fromPushKit:(BOOL)fromPushKit
                       payload:(NSDictionary * _Nullable)payload
         withCompletionHandler:(void (^_Nullable)(void))completion
@@ -550,7 +570,7 @@ contactIdentifier:(NSString * _Nullable)contactIdentifier
     callUpdate.supportsGrouping = NO;
     callUpdate.supportsUngrouping = NO;
     callUpdate.hasVideo = hasVideo;
-    callUpdate.localizedCallerName = localizedCallerName;
+    callUpdate.localizedCallerName = callerName;
     
     [CallKeep initCallKitProvider];
     [sharedProvider reportNewIncomingCallWithUUID:uuid update:callUpdate completion:^(NSError * _Nullable error) {
@@ -559,7 +579,7 @@ contactIdentifier:(NSString * _Nullable)contactIdentifier
             @"error": error && error.localizedDescription ? error.localizedDescription : @"",
             @"callUUID": uuidString,
             @"handle": handle,
-            @"localizedCallerName": localizedCallerName ? localizedCallerName : @"",
+            @"callerName": callerName ? callerName : @"",
             @"hasVideo": @(hasVideo),
             @"fromPushKit": @(fromPushKit),
             @"payload": payload ? payload : @"",
@@ -576,15 +596,6 @@ contactIdentifier:(NSString * _Nullable)contactIdentifier
     }];
 }
 
-+ (void)reportNewIncomingCall:(NSString *)uuidString
-                       handle:(NSString *)handle
-                   handleType:(NSString *)handleType
-                     hasVideo:(BOOL)hasVideo
-          localizedCallerName:(NSString * _Nullable)localizedCallerName
-                  fromPushKit:(BOOL)fromPushKit
-{
-    [CallKeep reportNewIncomingCall: uuidString handle:handle handleType:handleType hasVideo:hasVideo localizedCallerName:localizedCallerName fromPushKit: fromPushKit payload:nil withCompletionHandler:nil];
-}
 
 - (BOOL)lessThanIos10_2
 {

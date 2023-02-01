@@ -3,36 +3,25 @@ import 'package:callkeep/src/call.dart';
 import 'event.dart';
 
 class CallKeepDidReceiveStartCallAction extends EventType {
-  const CallKeepDidReceiveStartCallAction({this.callData});
   CallKeepDidReceiveStartCallAction.fromMap(Map<dynamic, dynamic> arguments)
       : callData = CallData.fromMap(arguments);
-  final CallData? callData;
+  final CallData callData;
 }
 
 class CallKeepPerformAnswerCallAction extends EventType {
-  const CallKeepPerformAnswerCallAction({this.callData});
   CallKeepPerformAnswerCallAction.fromMap(Map<dynamic, dynamic> arguments)
       : callData = CallData.fromMap(arguments);
-  final CallData? callData;
+  final CallData callData;
 }
 
 class CallKeepShowIncomingCallAction extends EventType {
-  const CallKeepShowIncomingCallAction({this.callData});
   CallKeepShowIncomingCallAction.fromMap(Map<dynamic, dynamic> arguments)
       : callData = CallData.fromMap(arguments);
-  final CallData? callData;
+  final CallData callData;
 }
 
 class CallKeepPerformEndCallAction extends EventType {
-  const CallKeepPerformEndCallAction({this.callUUID});
   CallKeepPerformEndCallAction.fromMap(Map<dynamic, dynamic> arguments)
-      : callUUID = arguments['callUUID'];
-  final String? callUUID;
-}
-
-class CallKeepPerformRejectCallAction extends EventType {
-  const CallKeepPerformRejectCallAction({this.callUUID});
-  CallKeepPerformRejectCallAction.fromMap(Map<dynamic, dynamic> arguments)
       : callUUID = arguments['callUUID'];
   final String? callUUID;
 }
@@ -46,31 +35,12 @@ class CallKeepDidDeactivateAudioSession extends EventType {
 }
 
 class CallKeepDidDisplayIncomingCall extends EventType {
-  const CallKeepDidDisplayIncomingCall({
-    this.callUUID,
-    this.handle,
-    this.localizedCallerName,
-    this.hasVideo,
-    this.fromPushKit,
-    this.payload,
-  });
   CallKeepDidDisplayIncomingCall.fromMap(Map<dynamic, dynamic> arguments)
-      : callUUID = arguments['callUUID'],
-        handle = arguments['handle'],
-        localizedCallerName = arguments['localizedCallerName'],
-        hasVideo = arguments['hasVideo'],
-        fromPushKit = arguments['fromPushKit'],
-        payload = arguments['payload'];
-  final String? callUUID;
-  final String? handle;
-  final String? localizedCallerName;
-  final bool? hasVideo;
-  final bool? fromPushKit;
-  final Map<dynamic, dynamic>? payload;
+      : callData = CallData.fromMap(arguments);
+  final CallData callData;
 }
 
 class CallKeepDidPerformSetMutedCallAction extends EventType {
-  const CallKeepDidPerformSetMutedCallAction({this.callUUID, this.muted});
   CallKeepDidPerformSetMutedCallAction.fromMap(Map<dynamic, dynamic> arguments)
       : callUUID = arguments['callUUID'],
         muted = arguments['muted'];
@@ -79,7 +49,6 @@ class CallKeepDidPerformSetMutedCallAction extends EventType {
 }
 
 class CallKeepDidToggleHoldAction extends EventType {
-  const CallKeepDidToggleHoldAction({this.callUUID, this.hold});
   CallKeepDidToggleHoldAction.fromMap(Map<dynamic, dynamic> arguments)
       : callUUID = arguments['callUUID'],
         hold = arguments['hold'];
@@ -88,7 +57,6 @@ class CallKeepDidToggleHoldAction extends EventType {
 }
 
 class CallKeepDidPerformDTMFAction extends EventType {
-  const CallKeepDidPerformDTMFAction({this.callUUID, this.digits});
   CallKeepDidPerformDTMFAction.fromMap(Map<dynamic, dynamic> arguments)
       : callUUID = arguments['callUUID'],
         digits = arguments['digits'];
@@ -97,20 +65,26 @@ class CallKeepDidPerformDTMFAction extends EventType {
 }
 
 class CallKeepProviderReset extends EventType {
-  const CallKeepProviderReset();
+  CallKeepProviderReset();
 }
 
 class CallKeepCheckReachability extends EventType {
-  const CallKeepCheckReachability();
+  CallKeepCheckReachability();
 }
 
 class CallKeepDidLoadWithEvents extends EventType {
-  const CallKeepDidLoadWithEvents();
+  CallKeepDidLoadWithEvents();
 }
 
 class CallKeepPushKitToken extends EventType {
-  const CallKeepPushKitToken({this.token});
   CallKeepPushKitToken.fromMap(Map<dynamic, dynamic> arguments)
       : token = arguments['token'];
   final String? token;
+}
+
+class CallKeepPerformRejectCallAction extends EventType {
+  const CallKeepPerformRejectCallAction({this.callUUID});
+  CallKeepPerformRejectCallAction.fromMap(Map<dynamic, dynamic> arguments)
+      : callUUID = arguments['callUUID'];
+  final String? callUUID;
 }

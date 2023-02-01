@@ -11,6 +11,7 @@
 #import <CallKit/CallKit.h>
 #import <Intents/Intents.h>
 #import <PushKit/PushKit.h>
+#import "CallKeepPushDelegate.h"
 
 @interface CallKeep: NSObject<CXProviderDelegate, PKPushRegistryDelegate>
 @property (nonatomic, strong, nullable) CXCallController *callKeepCallController;
@@ -27,11 +28,13 @@
 continueUserActivity:(NSUserActivity * _Nonnull)userActivity
   restorationHandler:(void(^ _Nonnull)(NSArray<id<UIUserActivityRestoring>> * __nullable restorableObjects))restorationHandler;
 
++ (void)setDelegate:(NSObject<CallKeepPushDelegate>* _Nullable)delegate;
+
 + (void)reportNewIncomingCall:(NSString * _Nonnull)uuidString
                        handle:(NSString * _Nonnull)handle
                    handleType:(NSString * _Nonnull)handleType
                      hasVideo:(BOOL)hasVideo
-          localizedCallerName:(NSString * _Nullable)localizedCallerName
+                   callerName:(NSString * _Nullable)callerName
                   fromPushKit:(BOOL)fromPushKit
                       payload:(NSDictionary * _Nullable)payload;
 
@@ -39,7 +42,7 @@ continueUserActivity:(NSUserActivity * _Nonnull)userActivity
                        handle:(NSString * _Nonnull)handle
                    handleType:(NSString * _Nonnull)handleType
                      hasVideo:(BOOL)hasVideo
-          localizedCallerName:(NSString * _Nullable)localizedCallerName
+                   callerName:(NSString * _Nullable)callerName
                   fromPushKit:(BOOL)fromPushKit
                       payload:(NSDictionary * _Nullable)payload
         withCompletionHandler:(void (^_Nullable)(void))completion;
