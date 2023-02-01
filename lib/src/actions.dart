@@ -26,6 +26,34 @@ class CallKeepPerformEndCallAction extends EventType {
   final String? callUUID;
 }
 
+class CallKeepPerformRejectCallAction extends EventType {
+  CallKeepPerformRejectCallAction.fromMap(Map<dynamic, dynamic> arguments)
+      : callUUID = arguments['callUUID'];
+  final String? callUUID;
+}
+
+class CallKeepDidChangeAudioAction extends EventType {
+  CallKeepDidChangeAudioAction.fromMap(Map<dynamic, dynamic> arguments)
+      : callUUID = arguments['callUUID'],
+        audioRoute = arguments['audioRoute'];
+  final String? callUUID;
+  final int? audioRoute;
+}
+
+class CallKeepDidReceiveFailedCallAction extends EventType {
+  CallKeepDidReceiveFailedCallAction.fromMap(Map<dynamic, dynamic> arguments)
+      : callData = CallData.fromMap(arguments);
+  final CallData callData;
+}
+
+class CallKeepDidFailCallAction extends EventType {
+  CallKeepDidFailCallAction.fromMap(Map<dynamic, dynamic> arguments)
+      : callUUID = arguments['callUUID'],
+        action = arguments['action'];
+  final String? callUUID;
+  final String? action;
+}
+
 class CallKeepDidActivateAudioSession extends EventType {
   const CallKeepDidActivateAudioSession();
 }
@@ -80,11 +108,4 @@ class CallKeepPushKitToken extends EventType {
   CallKeepPushKitToken.fromMap(Map<dynamic, dynamic> arguments)
       : token = arguments['token'];
   final String? token;
-}
-
-class CallKeepPerformRejectCallAction extends EventType {
-  const CallKeepPerformRejectCallAction({this.callUUID});
-  CallKeepPerformRejectCallAction.fromMap(Map<dynamic, dynamic> arguments)
-      : callUUID = arguments['callUUID'];
-  final String? callUUID;
 }

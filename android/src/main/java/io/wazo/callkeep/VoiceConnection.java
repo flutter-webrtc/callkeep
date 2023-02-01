@@ -18,6 +18,7 @@
 package io.wazo.callkeep;
 
 import static io.wazo.callkeep.CallKeepConstants.ACTION_ANSWER_CALL;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_AUDIO_CALL;
 import static io.wazo.callkeep.CallKeepConstants.ACTION_AUDIO_SESSION;
 import static io.wazo.callkeep.CallKeepConstants.ACTION_DTMF_TONE;
 import static io.wazo.callkeep.CallKeepConstants.ACTION_END_CALL;
@@ -40,6 +41,7 @@ import android.os.Handler;
 import android.telecom.CallAudioState;
 import android.telecom.Connection;
 import android.telecom.DisconnectCause;
+import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
 import android.util.Log;
 
@@ -60,23 +62,22 @@ public class VoiceConnection extends Connection {
         super();
         this.connectionData = connectionData;
         this.context = context;
-
-        String number = (String) connectionData.get(EXTRA_CALL_NUMBER);
-        String name = (String) connectionData.get(EXTRA_CALLER_NAME);
-        updateDisplay(name, number);
-    }
-
-    public HashMap<String, Object> getConnectionData() {
-        return new HashMap<>(connectionData);
+        updateDisplay();
     }
 
     public void updateDisplay(String callerName, String handle) {
         if (handle != null) {
-            setAddress(Uri.parse(handle), TelecomManager.PRESENTATION_ALLOWED);
+            connectionData.put(EXTRA_CALL_NUMBER, handle);
         }
         if (callerName != null) {
-            setCallerDisplayName(callerName, TelecomManager.PRESENTATION_ALLOWED);
+            connectionData.put(EXTRA_CALLER_NAME, callerName);
         }
+        updateDisplay();
+    }
+
+    private void updateDisplay() {
+        setAddress(Uri.parse(String.valueOf(connectionData.get(EXTRA_CALL_NUMBER))), TelecomManager.PRESENTATION_ALLOWED);
+        setCallerDisplayName(String.valueOf(connectionData.get(EXTRA_CALLER_NAME)), TelecomManager.PRESENTATION_ALLOWED);
     }
 
     @Override
@@ -91,11 +92,37 @@ public class VoiceConnection extends Connection {
     @Override
     public void onCallAudioStateChanged(CallAudioState state) {
         super.onCallAudioStateChanged(state);
-        if (Objects.equals(connectionData.get("isMuted"), state.isMuted())) {
-            return;
+        if (!Objects.equals(connectionData.get("isMuted"), state.isMuted())) {
+            connectionData.put("isMuted", state.isMuted());
+            sendCallRequestToActivity(state.isMuted() ? ACTION_MUTE_CALL : ACTION_UNMUTE_CALL, connectionData);
         }
-        connectionData.put("isMuted", state.isMuted());
-        sendCallRequestToActivity(state.isMuted() ? ACTION_MUTE_CALL : ACTION_UNMUTE_CALL, connectionData);
+        if (!Objects.equals(connectionData.get("audioRoute"), state.getRoute())) {
+            connectionData.put("audioRoute", state.getRoute());
+            HashMap<String, Object> data = new HashMap<>(connectionData);
+            data.put("audioRoute", state.getRoute());
+            sendCallRequestToActivity(ACTION_AUDIO_CALL, data);
+        }
+    }
+
+    public void setMuted(boolean muted) {
+        CallAudioState newAudioState;
+        if (muted) {
+            newAudioState = new CallAudioState(true,
+                    getCallAudioState().getRoute(),
+                    getCallAudioState().getSupportedRouteMask());
+        } else {
+            newAudioState = new CallAudioState(false,
+                    getCallAudioState().getRoute(),
+                    getCallAudioState().getSupportedRouteMask());
+        }
+        onCallAudioStateChanged(newAudioState);
+    }
+
+    public void setAudio(Integer audioRoute) {
+        CallAudioState newAudioState = new CallAudioState(false,
+                audioRoute,
+                getCallAudioState().getSupportedRouteMask());
+        onCallAudioStateChanged(newAudioState);
     }
 
     @Override
@@ -114,13 +141,12 @@ public class VoiceConnection extends Connection {
     }
 
     private void onAnswered() {
-        sendCallRequestToActivity(ACTION_ANSWER_CALL, connectionData);
         initCall();
-        setActive();
+        sendCallRequestToActivity(ACTION_ANSWER_CALL, connectionData);
     }
 
     public void initCall() {
-        setConnectionCapabilities(getConnectionCapabilities() | Connection.CAPABILITY_HOLD);
+        setHoldableIfSupported();
         setAudioModeIsVoip(true);
         sendCallRequestToActivity(ACTION_AUDIO_SESSION, connectionData);
     }
@@ -133,13 +159,9 @@ public class VoiceConnection extends Connection {
 
     @Override
     public void onPlayDtmfTone(char dtmf) {
-        try {
-            HashMap<String, Object> data = new HashMap<>(connectionData);
-            data.put("DTMF", Character.toString(dtmf));
-            sendCallRequestToActivity(ACTION_DTMF_TONE, data);
-        } catch (Throwable exception) {
-            Log.e(TAG, "Handle map error", exception);
-        }
+        HashMap<String, Object> data = new HashMap<>(connectionData);
+        data.put("DTMF", Character.toString(dtmf));
+        sendCallRequestToActivity(ACTION_DTMF_TONE, data);
     }
 
     @Override
@@ -152,7 +174,7 @@ public class VoiceConnection extends Connection {
 
     public void reportDisconnect(int reason) {
         super.onDisconnect();
-        int causeCode;
+        Integer causeCode = null;
         switch (reason) {
             case 1:
                 causeCode = DisconnectCause.ERROR;
@@ -171,10 +193,11 @@ public class VoiceConnection extends Connection {
                 causeCode = DisconnectCause.MISSED;
                 break;
             default:
-                causeCode = DisconnectCause.OTHER;
                 break;
         }
-        close(causeCode);
+        if (causeCode != null) {
+            close(causeCode);
+        }
     }
 
     @Override
@@ -196,7 +219,7 @@ public class VoiceConnection extends Connection {
     public void onUnhold() {
         super.onUnhold();
         sendCallRequestToActivity(ACTION_UNHOLD_CALL, connectionData);
-        setActive();
+        setCurrent();
     }
 
     @Override
@@ -208,8 +231,19 @@ public class VoiceConnection extends Connection {
     }
 
     public void onConnected() {
-        setActive();
+        setCurrent();
         Log.d(TAG, "onConnected executed");
+    }
+
+    public void setCurrent() {
+        setHoldableIfSupported();
+        setActive();
+    }
+
+    private void setHoldableIfSupported() {
+        if ((getConnectionCapabilities() & CAPABILITY_SUPPORT_HOLD) == CAPABILITY_SUPPORT_HOLD) {
+            setConnectionCapabilities(getConnectionCapabilities() | CAPABILITY_HOLD);
+        }
     }
 
     private void close(int causeCode) {
@@ -233,5 +267,6 @@ public class VoiceConnection extends Connection {
             LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
         });
     }
+
 
 }

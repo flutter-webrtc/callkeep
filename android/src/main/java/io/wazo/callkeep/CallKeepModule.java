@@ -138,8 +138,8 @@ public class CallKeepModule {
                 result.success(null);
             }
             break;
-            case "checkPhoneAccountPermission": {
-                checkPhoneAccountPermission(new ConstraintsArray(call.argument("additionalPermissions")), result);
+            case "requestPermissions": {
+                requestPermissions(new ConstraintsArray(call.argument("additionalPermissions")), result);
             }
             break;
             case "checkDefaultPhoneAccount": {
@@ -168,6 +168,11 @@ public class CallKeepModule {
             break;
             case "setMutedCall": {
                 setMutedCall(call.argument("uuid"), call.argument("muted"));
+                result.success(null);
+            }
+            break;
+            case "setCallAudio": {
+                setCallAudio(call.argument("uuid"), call.argument("audioRoute"));
                 result.success(null);
             }
             break;
@@ -275,7 +280,7 @@ public class CallKeepModule {
 
 
     private void displayIncomingCall(String uuid, String handle, String callerName, Map<String, String> additionalData) {
-        Log.d(TAG, "Called displayIncomingCall " + isConnectionServiceAvailable() + " " + hasPhoneAccount());
+        Log.d(TAG, "Called displayIncomingCall");
         if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
             return;
         }
@@ -366,7 +371,7 @@ public class CallKeepModule {
     }
 
 
-    private void checkPhoneAccountPermission(ConstraintsArray additionalPermissions, @NonNull MethodChannel.Result result) {
+    private void requestPermissions(ConstraintsArray additionalPermissions, @NonNull MethodChannel.Result result) {
         if (!isConnectionServiceAvailable()) {
             result.error(E_CONNECTION_SERVICE_NOT_AVAILABLE, "ConnectionService not available for this version of Android.", null);
             return;
@@ -382,16 +387,15 @@ public class CallKeepModule {
             for (int i = 0; i < additionalPermissions.size(); i++) {
                 allPermissions.add(additionalPermissions.getString(i));
             }
-            checkPhoneAccountPermission(
+            requestPermissions(
                     currentActivity,
                     allPermissions.toArray(new String[0]),
                     grantedPermissions -> result.success(grantedPermissions.size() == allPermissions.size()),
                     failedPermissions -> result.success(false)
             );
-            return;
+        } else {
+            result.success(true);
         }
-
-        result.success(hasPhoneAccount());
     }
 
     @SuppressLint("MissingPermission")
@@ -462,28 +466,28 @@ public class CallKeepModule {
         if (conn == null) {
             return;
         }
+
         conn.onReject();
     }
 
 
     private void setMutedCall(String uuid, Boolean shouldMute) {
-        Connection conn = VoiceConnectionService.getConnection(uuid);
+        VoiceConnection conn = VoiceConnectionService.getConnection(uuid);
         if (conn == null) {
             return;
         }
-
-        CallAudioState newAudioState;
         //if the requester wants to mute, do that. otherwise unmute
-        if (Boolean.TRUE.equals(shouldMute)) {
-            newAudioState = new CallAudioState(true,
-                    conn.getCallAudioState().getRoute(),
-                    conn.getCallAudioState().getSupportedRouteMask());
-        } else {
-            newAudioState = new CallAudioState(false,
-                    conn.getCallAudioState().getRoute(),
-                    conn.getCallAudioState().getSupportedRouteMask());
+        conn.setMuted(Boolean.TRUE.equals(shouldMute));
+    }
+
+
+    private void setCallAudio(String uuid, Integer audioRoute) {
+        VoiceConnection conn = VoiceConnectionService.getConnection(uuid);
+        if (conn == null) {
+            return;
         }
-        conn.onCallAudioStateChanged(newAudioState);
+        //if the requester wants to mute, do that. otherwise unmute
+        conn.setAudio(audioRoute);
     }
 
 
@@ -551,15 +555,12 @@ public class CallKeepModule {
 
 
     private void setCurrentCallActive(String uuid) {
-        Connection conn = VoiceConnectionService.getConnection(uuid);
+        VoiceConnection conn = VoiceConnectionService.getConnection(uuid);
         if (conn == null) {
             return;
         }
-
-        conn.setConnectionCapabilities(conn.getConnectionCapabilities() | Connection.CAPABILITY_HOLD);
-        conn.setActive();
+        conn.setCurrent();
     }
-
 
     private void openPhoneAccounts(@NonNull MethodChannel.Result result) {
         if (!isConnectionServiceAvailable()) {
@@ -616,15 +617,14 @@ public class CallKeepModule {
         String appName = this.getApplicationName(this.getAppContext());
 
         PhoneAccount.Builder builder = new PhoneAccount.Builder(accountHandle, appName);
+        int capabilities = 0;
         if (isSelfManaged(options)) {
-            builder.setCapabilities(PhoneAccount.CAPABILITY_SELF_MANAGED);
+            capabilities |= PhoneAccount.CAPABILITY_SELF_MANAGED;
         } else {
-            builder.setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER);
+            capabilities |= PhoneAccount.CAPABILITY_CALL_PROVIDER;
         }
 
-        if (useSystemUI(options)) {
-            builder.setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER);
-        }
+        builder.setCapabilities(capabilities);
 
         if (!options.isNull("imageName")) {
             int identifier = appContext.getResources().getIdentifier(settings.getString("imageName"), "drawable", appContext.getPackageName());
@@ -637,6 +637,7 @@ public class CallKeepModule {
         telephonyManager = (TelephonyManager) this.getAppContext().getSystemService(Context.TELEPHONY_SERVICE);
 
         telecomManager.registerPhoneAccount(account);
+        Log.d(TAG, "Registered phone account " + account);
     }
 
     private void ensureTelecomManagerInitialize() {
@@ -648,13 +649,6 @@ public class CallKeepModule {
             accountHandle = new PhoneAccountHandle(cName, appName);
             telecomManager = (TelecomManager) context.getSystemService(Context.TELECOM_SERVICE);
         }
-    }
-
-    @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.O)
-    private boolean useSystemUI(ConstraintsMap options) {
-        return !options.isNull("useSystemUI") &&
-                options.getBoolean("useSystemUI") &&
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O;
     }
 
     @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.O)
@@ -691,11 +685,7 @@ public class CallKeepModule {
         if (telecomManager == null) return false;
         PhoneAccount phoneAccount = telecomManager.getPhoneAccount(accountHandle);
         if (phoneAccount == null) return false;
-        if (isSelfManaged(settings) && phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_SELF_MANAGED)) {
-            return true;
-        } else {
-            return phoneAccount.isEnabled();
-        }
+        return phoneAccount.isEnabled();
     }
 
     private void registerReceiver() {
@@ -704,13 +694,14 @@ public class CallKeepModule {
             intentFilter.addAction(ACTION_END_CALL);
             intentFilter.addAction(ACTION_ANSWER_CALL);
             intentFilter.addAction(ACTION_INCOMING_CALL);
+            intentFilter.addAction(ACTION_ONGOING_CALL);
+            intentFilter.addAction(ACTION_FAILED_CALL);
             intentFilter.addAction(ACTION_REJECT_CALL);
             intentFilter.addAction(ACTION_MUTE_CALL);
             intentFilter.addAction(ACTION_UNMUTE_CALL);
             intentFilter.addAction(ACTION_DTMF_TONE);
             intentFilter.addAction(ACTION_UNHOLD_CALL);
             intentFilter.addAction(ACTION_HOLD_CALL);
-            intentFilter.addAction(ACTION_ONGOING_CALL);
             intentFilter.addAction(ACTION_AUDIO_SESSION);
             intentFilter.addAction(ACTION_CHECK_REACHABILITY);
             LocalBroadcastManager.getInstance(this.context).registerReceiver(voiceBroadcastReceiver, intentFilter);
@@ -723,7 +714,7 @@ public class CallKeepModule {
     }
 
 
-    private void checkPhoneAccountPermission(
+    private void requestPermissions(
             Activity activity,
             final String[] permissions,
             final Callback<List<String>> successCallback,
@@ -767,58 +758,70 @@ public class CallKeepModule {
 
             switch (Objects.requireNonNull(intent.getAction())) {
                 case ACTION_END_CALL:
-                    args.putString("callUUID", (String)attributeMap.get(EXTRA_CALL_UUID));
+                    args.putString("callUUID", (String) attributeMap.get(EXTRA_CALL_UUID));
                     sendEventToFlutter("CallKeepPerformEndCallAction", args);
                     break;
                 case ACTION_REJECT_CALL:
-                    args.putString("callUUID", (String)attributeMap.get(EXTRA_CALL_UUID));
+                    args.putString("callUUID", (String) attributeMap.get(EXTRA_CALL_UUID));
                     sendEventToFlutter("CallKeepPerformRejectCallAction", args);
                     break;
                 case ACTION_ANSWER_CALL:
-                    args.putString("callUUID", (String)attributeMap.get(EXTRA_CALL_UUID));
-                    args.putString("handle", (String)attributeMap.get(EXTRA_CALL_NUMBER));
-                    args.putString("name", (String)attributeMap.get(EXTRA_CALLER_NAME));
+                    args.putString("callUUID", (String) attributeMap.get(EXTRA_CALL_UUID));
+                    args.putString("handle", (String) attributeMap.get(EXTRA_CALL_NUMBER));
+                    args.putString("name", (String) attributeMap.get(EXTRA_CALLER_NAME));
                     args.putMap("additionalData", (Map<String, Object>) attributeMap.get(EXTRA_CALL_DATA));
                     sendEventToFlutter("CallKeepPerformAnswerCallAction", args);
                     break;
                 case ACTION_INCOMING_CALL:
-                    args.putString("callUUID", (String)attributeMap.get(EXTRA_CALL_UUID));
-                    args.putString("handle", (String)attributeMap.get(EXTRA_CALL_NUMBER));
-                    args.putString("name", (String)attributeMap.get(EXTRA_CALLER_NAME));
-                    args.putMap("additionalData", (Map<String, Object>)attributeMap.get(EXTRA_CALL_DATA));
+                    args.putString("callUUID", (String) attributeMap.get(EXTRA_CALL_UUID));
+                    args.putString("handle", (String) attributeMap.get(EXTRA_CALL_NUMBER));
+                    args.putString("name", (String) attributeMap.get(EXTRA_CALLER_NAME));
+                    args.putMap("additionalData", (Map<String, Object>) attributeMap.get(EXTRA_CALL_DATA));
                     sendEventToFlutter("CallKeepShowIncomingCallAction", args);
+                    break;
+                case ACTION_ONGOING_CALL:
+                    args.putString("callUUID", (String) attributeMap.get(EXTRA_CALL_UUID));
+                    args.putString("handle", (String) attributeMap.get(EXTRA_CALL_NUMBER));
+                    args.putString("name", (String) attributeMap.get(EXTRA_CALLER_NAME));
+                    args.putMap("additionalData", (Map<String, Object>) attributeMap.get(EXTRA_CALL_DATA));
+                    sendEventToFlutter("CallKeepDidReceiveStartCallAction", args);
+                    break;
+                case ACTION_FAILED_CALL:
+                    args.putString("callUUID", (String) attributeMap.get(EXTRA_CALL_UUID));
+                    args.putString("handle", (String) attributeMap.get(EXTRA_CALL_NUMBER));
+                    args.putString("name", (String) attributeMap.get(EXTRA_CALLER_NAME));
+                    args.putMap("additionalData", (Map<String, Object>) attributeMap.get(EXTRA_CALL_DATA));
+                    sendEventToFlutter("CallKeepDidReceiveFailedCallAction", args);
                     break;
                 case ACTION_HOLD_CALL:
                     args.putBoolean("hold", true);
-                    args.putString("callUUID", (String)attributeMap.get(EXTRA_CALL_UUID));
+                    args.putString("callUUID", (String) attributeMap.get(EXTRA_CALL_UUID));
                     sendEventToFlutter("CallKeepDidToggleHoldAction", args);
                     break;
                 case ACTION_UNHOLD_CALL:
                     args.putBoolean("hold", false);
-                    args.putString("callUUID", (String)attributeMap.get(EXTRA_CALL_UUID));
+                    args.putString("callUUID", (String) attributeMap.get(EXTRA_CALL_UUID));
                     sendEventToFlutter("CallKeepDidToggleHoldAction", args);
                     break;
                 case ACTION_MUTE_CALL:
                     args.putBoolean("muted", true);
-                    args.putString("callUUID", (String)attributeMap.get(EXTRA_CALL_UUID));
+                    args.putString("callUUID", (String) attributeMap.get(EXTRA_CALL_UUID));
                     sendEventToFlutter("CallKeepDidPerformSetMutedCallAction", args);
                     break;
                 case ACTION_UNMUTE_CALL:
                     args.putBoolean("muted", false);
-                    args.putString("callUUID", (String)attributeMap.get(EXTRA_CALL_UUID));
+                    args.putString("callUUID", (String) attributeMap.get(EXTRA_CALL_UUID));
                     sendEventToFlutter("CallKeepDidPerformSetMutedCallAction", args);
                     break;
                 case ACTION_DTMF_TONE:
-                    args.putString("digits", (String)attributeMap.get("DTMF"));
-                    args.putString("callUUID", (String)attributeMap.get(EXTRA_CALL_UUID));
+                    args.putString("digits", (String) attributeMap.get("DTMF"));
+                    args.putString("callUUID", (String) attributeMap.get(EXTRA_CALL_UUID));
                     sendEventToFlutter("CallKeepDidPerformDTMFAction", args);
                     break;
-                case ACTION_ONGOING_CALL:
-                    args.putString("callUUID", (String)attributeMap.get(EXTRA_CALL_UUID));
-                    args.putString("handle", (String)attributeMap.get(EXTRA_CALL_NUMBER));
-                    args.putString("name", (String)attributeMap.get(EXTRA_CALLER_NAME));
-                    args.putMap("additionalData", (Map<String, Object>)attributeMap.get(EXTRA_CALL_DATA));
-                    sendEventToFlutter("CallKeepDidReceiveStartCallAction", args);
+                case ACTION_AUDIO_CALL:
+                    args.putString("route", (String) attributeMap.get("audioRoute"));
+                    args.putString("callUUID", (String) attributeMap.get(EXTRA_CALL_UUID));
+                    sendEventToFlutter("CallKeepDidChangeAudioAction", args);
                     break;
                 case ACTION_AUDIO_SESSION:
                     sendEventToFlutter("CallKeepDidActivateAudioSession", args);
@@ -828,10 +831,10 @@ public class CallKeepModule {
                     break;
                 case ACTION_WAKE_APP:
                     Intent headlessIntent = new Intent(CallKeepModule.this.context, CallKeepBackgroundMessagingService.class);
-                    headlessIntent.putExtra("callUUID", (String)attributeMap.get(EXTRA_CALL_UUID));
-                    headlessIntent.putExtra("name", (String)attributeMap.get(EXTRA_CALLER_NAME));
-                    headlessIntent.putExtra("handle", (String)attributeMap.get(EXTRA_CALL_NUMBER));
-                    headlessIntent.putExtra("additionalData", (HashMap)attributeMap.get(EXTRA_CALL_DATA));
+                    headlessIntent.putExtra("callUUID", (String) attributeMap.get(EXTRA_CALL_UUID));
+                    headlessIntent.putExtra("name", (String) attributeMap.get(EXTRA_CALLER_NAME));
+                    headlessIntent.putExtra("handle", (String) attributeMap.get(EXTRA_CALL_NUMBER));
+                    headlessIntent.putExtra("additionalData", (HashMap<?, ?>) attributeMap.get(EXTRA_CALL_DATA));
                     Log.d(TAG, "wakeUpApplication: " + attributeMap.get(EXTRA_CALL_UUID) + ", number : " + attributeMap.get(EXTRA_CALL_NUMBER) + ", displayName:" + attributeMap.get(EXTRA_CALLER_NAME));
 
                     ComponentName name = CallKeepModule.this.context.startService(headlessIntent);

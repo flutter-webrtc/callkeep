@@ -18,6 +18,7 @@
 package io.wazo.callkeep;
 
 import static io.wazo.callkeep.CallKeepConstants.ACTION_CHECK_REACHABILITY;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_FAILED_CALL;
 import static io.wazo.callkeep.CallKeepConstants.ACTION_ONGOING_CALL;
 import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALLER_NAME;
 import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALL_ATTRIB;
@@ -34,6 +35,7 @@ import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Build;
@@ -57,6 +59,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import io.wazo.callkeep.utils.ConstraintsMap;
@@ -115,7 +118,11 @@ public class VoiceConnectionService extends ConnectionService {
     }
 
     public static void setSettings(ConstraintsMap settings) {
-        VoiceConnectionService.settings = settings;
+        if (VoiceConnectionService.settings == null) {
+            VoiceConnectionService.settings = settings;
+        } else {
+            VoiceConnectionService.settings.merge(settings.toMap());
+        }
     }
 
     public static void setReachable() {
@@ -135,12 +142,40 @@ public class VoiceConnectionService extends ConnectionService {
     }
 
     @Override
+    public void onCreateIncomingConnectionFailed(PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
+        super.onCreateIncomingConnectionFailed(connectionManagerPhoneAccount, request);
+        Bundle extras = request.getExtras();
+        assert extras != null;
+        extras = extras.getBundle(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS);
+        onConnectionFailed(request, Objects.requireNonNull(extras));
+    }
+
+    @Override
+    public void onCreateOutgoingConnectionFailed(PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
+        super.onCreateOutgoingConnectionFailed(connectionManagerPhoneAccount, request);
+        onConnectionFailed(request, request.getExtras());
+    }
+
+    private void onConnectionFailed(ConnectionRequest request, Bundle extras) {
+        String extrasUuid = extras.getString(EXTRA_CALL_UUID);
+        String extrasNumber = extras.getString(EXTRA_CALL_NUMBER);
+        String displayName = extras.getString(EXTRA_CALLER_NAME);
+        Log.d(TAG, "onConnectionFailed: " + extrasUuid + ", number: " + extrasNumber + ", displayName:" + displayName);
+        HashMap<String, Object> connectionData = this.bundleToMap(extras);
+        sendCallRequestToActivity(ACTION_FAILED_CALL, connectionData);
+        Log.d(TAG, "onConnectionFailed: calling");
+    }
+
+    @Override
     public Connection onCreateIncomingConnection(PhoneAccountHandle phoneAccount, ConnectionRequest request) {
         return makeIncomingCall(request);
     }
 
     private Connection makeIncomingCall(ConnectionRequest request) {
-        Connection connection = makeOngoingCall(request, TelecomManager.EXTRA_INCOMING_CALL_EXTRAS);
+        Bundle extras = request.getExtras();
+        assert extras != null;
+        extras = extras.getBundle(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS);
+        Connection connection = makeOngoingCall(request, Objects.requireNonNull(extras));
         connection.setRinging();
         return connection;
     }
@@ -156,37 +191,29 @@ public class VoiceConnectionService extends ConnectionService {
         return makeOutgoingCall(request);
     }
 
-    @Override
-    public void onCreateIncomingConnectionFailed(PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
-
-        super.onCreateIncomingConnectionFailed(connectionManagerPhoneAccount, request);
-    }
-
     private Connection makeOutgoingCall(ConnectionRequest request) {
         fixMissingNumber(request.getAddress(), request.getExtras());
         if (wakeAndCheckAvailability(request.getExtras(), false)) {
             return Connection.createFailedConnection(new DisconnectCause(DisconnectCause.LOCAL));
         } else {
-            VoiceConnection connection = makeOngoingCall(request, TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS);
+            VoiceConnection connection = makeOngoingCall(request, request.getExtras());
             connection.setDialing();
-            sendCallRequestToActivity(ACTION_ONGOING_CALL, connection.getConnectionData());
             connection.initCall();
             return connection;
         }
     }
 
-    private VoiceConnection makeOngoingCall(ConnectionRequest request, String extrasKey) {
-        Bundle extras = request.getExtras().getBundle(extrasKey);
-        assert extras != null;
+    private VoiceConnection makeOngoingCall(ConnectionRequest request, Bundle extras) {
         String extrasUuid = extras.getString(EXTRA_CALL_UUID);
         String extrasNumber = extras.getString(EXTRA_CALL_NUMBER);
         String displayName = extras.getString(EXTRA_CALLER_NAME);
         Log.d(TAG, "makeOngoingCall: " + extrasUuid + ", number: " + extrasNumber + ", displayName:" + displayName);
         // TODO: Hold all other calls
-        HashMap<String, Object> extrasMap = this.bundleToMap(extras);
-        VoiceConnection connection = new VoiceConnection(this, extrasMap);
+        HashMap<String, Object> connectionData = this.bundleToMap(extras);
+        VoiceConnection connection = new VoiceConnection(this, connectionData);
         initConnection(extrasUuid, connection, extras, request.getAccountHandle());
         startForegroundService();
+        sendCallRequestToActivity(ACTION_ONGOING_CALL, connectionData);
         Log.d(TAG, "makeOngoingCall: calling");
         return connection;
     }
@@ -309,7 +336,11 @@ public class VoiceConnectionService extends ConnectionService {
     }
 
     private void initConnection(String uuid, VoiceConnection connection, Bundle extras, PhoneAccountHandle accountHandle) {
-        connection.setConnectionCapabilities(Connection.CAPABILITY_MUTE | Connection.CAPABILITY_SUPPORT_HOLD);
+        int capabilities = connection.getConnectionCapabilities() | Connection.CAPABILITY_MUTE;
+        if (!settings.isNull("supportsHolding") && settings.getBoolean("supportsHolding")) {
+            capabilities |= Connection.CAPABILITY_SUPPORT_HOLD;
+        }
+        connection.setConnectionCapabilities(capabilities);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Context context = getApplicationContext();

@@ -12,15 +12,13 @@
     return [super application:application didFinishLaunchingWithOptions:launchOptions];
 }
 
-- (BOOL)application:(UIApplication *)application continueUserActivity:(NSUserActivity *)userActivity restorationHandler:(void(^)(NSArray<id<UIUserActivityRestoring>> * __nullable restorableObjects))restorationHandler {
-    return [CallKeep application:application
-                        continueUserActivity:userActivity
-                        restorationHandler:restorationHandler];
-}
-
-- (nonnull NSDictionary *)mapPushPayload:(NSDictionary * _Nonnull)payload {
+- (nullable NSDictionary *)mapPushPayload:(NSDictionary * _Nonnull)payload {
     NSLog(@"Mapper called with %@", [payload description]);
     return payload;
+}
+
+- (void)onCallEvent:(NSString *)event withCallData:(NSDictionary *)callData {
+    NSLog(@"Delegate called on %@ with %@", event, [callData description]);
 }
 
 @end

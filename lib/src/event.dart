@@ -54,7 +54,6 @@ class EventManager {
   void _addListener<T>(Type runtimeType, Function listener) {
     try {
       var targets = listeners[runtimeType];
-      print('listeners for EventType $runtimeType $targets');
       if (targets == null) {
         targets = <Function>[];
         listeners[runtimeType] = targets;

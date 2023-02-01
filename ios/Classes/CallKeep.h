@@ -13,6 +13,24 @@
 #import <PushKit/PushKit.h>
 #import "CallKeepPushDelegate.h"
 
+static const NSString *_Nonnull const CallKeepHandleStartCallNotification = @"CallKeepHandleStartCallNotification";
+static const NSString *_Nonnull const CallKeepDidReceiveStartCallAction = @"CallKeepDidReceiveStartCallAction";
+static const NSString *_Nonnull const CallKeepPerformAnswerCallAction = @"CallKeepPerformAnswerCallAction";
+static const NSString *_Nonnull const CallKeepPerformEndCallAction = @"CallKeepPerformEndCallAction";
+static const NSString *_Nonnull const CallKeepDidActivateAudioSession = @"CallKeepDidActivateAudioSession";
+static const NSString *_Nonnull const CallKeepDidDeactivateAudioSession = @"CallKeepDidDeactivateAudioSession";
+static const NSString *_Nonnull const CallKeepDidDisplayIncomingCall = @"CallKeepDidDisplayIncomingCall";
+static const NSString *_Nonnull const CallKeepDidFailCallAction = @"CallKeepDidFailCallAction";
+static const NSString *_Nonnull const CallKeepDidPerformSetMutedCallAction = @"CallKeepDidPerformSetMutedCallAction";
+static const NSString *_Nonnull const CallKeepPerformPlayDTMFCallAction = @"CallKeepDidPerformDTMFAction";
+static const NSString *_Nonnull const CallKeepDidToggleHoldAction = @"CallKeepDidToggleHoldAction";
+static const NSString *_Nonnull const CallKeepProviderReset = @"CallKeepProviderReset";
+static const NSString *_Nonnull const CallKeepCheckReachability = @"CallKeepCheckReachability";
+static const NSString *_Nonnull const CallKeepDidLoadWithEvents = @"CallKeepDidLoadWithEvents";
+static const NSString *_Nonnull const CallKeepPushKitToken = @"CallKeepPushKitToken";
+static const NSString *_Nonnull const CallKeepActionAnswer = @"CallKeepActionAnswer";
+static const NSString *_Nonnull const CallKeepActionEnd = @"CallKeepActionEnd";
+
 @interface CallKeep: NSObject<CXProviderDelegate, PKPushRegistryDelegate>
 @property (nonatomic, strong, nullable) CXCallController *callKeepCallController;
 @property (nonatomic, strong, nullable) CXProvider *callKeepProvider;

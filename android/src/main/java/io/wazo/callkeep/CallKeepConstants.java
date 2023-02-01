@@ -4,13 +4,16 @@ public class CallKeepConstants {
     public static final String ACTION_ANSWER_CALL = "ACTION_ANSWER_CALL";
     public static final String ACTION_REJECT_CALL = "ACTION_REJECT_CALL";
     public static final String ACTION_INCOMING_CALL = "ACTION_INCOMING_CALL";
+    public static final String ACTION_FAILED_CALL = "ACTION_FAILED_CALL";
+    public static final String ACTION_ONGOING_CALL = "ACTION_ONGOING_CALL";
+
     public static final String ACTION_AUDIO_SESSION = "ACTION_AUDIO_SESSION";
     public static final String ACTION_CHECK_REACHABILITY = "ACTION_CHECK_REACHABILITY";
     public static final String ACTION_DTMF_TONE = "ACTION_DTMF_TONE";
     public static final String ACTION_END_CALL = "ACTION_END_CALL";
     public static final String ACTION_HOLD_CALL = "ACTION_HOLD_CALL";
     public static final String ACTION_MUTE_CALL = "ACTION_MUTE_CALL";
-    public static final String ACTION_ONGOING_CALL = "ACTION_ONGOING_CALL";
+    public static final String ACTION_AUDIO_CALL = "ACTION_AUDIO_CALL";
     public static final String ACTION_UNHOLD_CALL = "ACTION_UNHOLD_CALL";
     public static final String ACTION_UNMUTE_CALL = "ACTION_UNMUTE_CALL";
     public static final String ACTION_WAKE_APP = "ACTION_WAKE_APP";
