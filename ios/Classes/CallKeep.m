@@ -148,7 +148,7 @@ static NSObject<CallKeepPushDelegate>* _delegate;
 }
 
 - (void)sendEventWithName:(NSString *)name body:(id)body {
-   [self.eventChannel invokeMethod:name arguments:body];
+    [self.eventChannel invokeMethod:name arguments:body];
 }
 
 - (void)sendEventWithNameWrapper:(NSString *)name body:(NSDictionary*)body {
@@ -174,7 +174,18 @@ static NSObject<CallKeepPushDelegate>* _delegate;
 #endif
     _version = [[[NSProcessInfo alloc] init] operatingSystemVersion];
     self.callKeepCallController = [[CXCallController alloc] init];
-    settings = [[NSDictionary alloc] initWithDictionary:options];
+    NSMutableDictionary* _settings = [[NSMutableDictionary alloc] initWithDictionary:options];
+    NSEnumerator *enumerator = [options keyEnumerator];
+    id key;
+    while ((key = [enumerator nextObject])) {
+        id tmp = [options objectForKey:key];
+        if ([tmp isKindOfClass:[NSString class]] || [tmp isKindOfClass:[NSNumber class]]) {
+            _settings[key] = tmp;
+        } else {
+            _settings[key] = [tmp description];
+        }
+    }
+    settings = _settings;
     // Store settings in NSUserDefault
     [[NSUserDefaults standardUserDefaults] setObject:settings forKey:@"CallKeepSettings"];
     [[NSUserDefaults standardUserDefaults] synchronize];
@@ -202,9 +213,9 @@ static NSObject<CallKeepPushDelegate>* _delegate;
 - (void)pushRegistry:(PKPushRegistry *)registry didUpdatePushCredentials:(PKPushCredentials *)pushCredentials forType:(PKPushType)type {
     const unsigned *tokenBytes = [pushCredentials.token bytes];
     NSString *hexToken = [NSString stringWithFormat:@"%08x%08x%08x%08x%08x%08x%08x%08x",
-                      ntohl(tokenBytes[0]), ntohl(tokenBytes[1]), ntohl(tokenBytes[2]),
-                      ntohl(tokenBytes[3]), ntohl(tokenBytes[4]), ntohl(tokenBytes[5]),
-                      ntohl(tokenBytes[6]), ntohl(tokenBytes[7])];
+                          ntohl(tokenBytes[0]), ntohl(tokenBytes[1]), ntohl(tokenBytes[2]),
+                          ntohl(tokenBytes[3]), ntohl(tokenBytes[4]), ntohl(tokenBytes[5]),
+                          ntohl(tokenBytes[6]), ntohl(tokenBytes[7])];
     
     NSLog(@"\n[VoIP Token]: %@\n\n",hexToken);
     
@@ -224,17 +235,17 @@ static NSObject<CallKeepPushDelegate>* _delegate;
     // Process the received push
     NSLog(@"didReceiveIncomingPushWithPayload payload = %@", payload.type);
     /* payload example.
-    {
-        "uuid": "xxxxx-xxxxx-xxxxx-xxxxx",
-        "caller_id": "+8618612345678",
-        "caller_name": "hello",
-        "caller_id_type": "number",
-        "has_video": false,
-    }
-    */
-
+     {
+     "uuid": "xxxxx-xxxxx-xxxxx-xxxxx",
+     "caller_id": "+8618612345678",
+     "caller_name": "hello",
+     "caller_id_type": "number",
+     "has_video": false,
+     }
+     */
+    
     NSDictionary *dic = payload.dictionaryPayload;
-
+    
     if (_delegate) {
         dic = [_delegate mapPushPayload:dic];
     }
@@ -246,19 +257,20 @@ static NSObject<CallKeepPushDelegate>* _delegate;
         }
         return;
     }
-
+    
     NSString *uuid = dic[@"uuid"];
     NSString *callerId = dic[@"caller_id"];
     NSString *callerName = dic[@"caller_name"];
     BOOL hasVideo = [dic[@"has_video"] boolValue];
     NSString *callerIdType = dic[@"caller_id_type"];
-   
-
+    
+    
     if( uuid == nil) {
         uuid = [self createUUID];
     }
-
-
+    
+    NSLog(@"Got here %@.", [dic description]);
+    
     [CallKeep reportNewIncomingCall:uuid
                              handle:callerId
                          handleType:callerIdType
@@ -315,7 +327,6 @@ static NSObject<CallKeepPushDelegate>* _delegate;
 #ifdef DEBUG
     NSLog(@"[CallKeep][startCall] uuidString = %@", uuidString);
 #endif
-    [CallKeep reportNewIncomingCall:uuidString handle:handle handleType:handleType hasVideo:video callerName:callerName fromPushKit:false];
     int _handleType = [CallKeep getHandleType:handleType];
     NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:uuidString];
     CXHandle *callHandle = [[CXHandle alloc] initWithType:_handleType value:handle];
@@ -368,15 +379,15 @@ static NSObject<CallKeepPushDelegate>* _delegate;
     NSLog(@"[CallKeep][activeCalls]");
 #endif
     CXCallObserver *callObserver = [[CXCallObserver alloc] init];
-
+    
     NSMutableString *uuids = [NSMutableString string];
-
+    
     for(CXCall *call in callObserver.calls){
         NSLog(@"[CallKeep] activeCall %@ ", call.UUID);
         NSString *uuid = [call.UUID UUIDString];
         [uuids appendString: uuid];
     }
-
+    
     return [NSArray arrayWithObject:uuids];
 }
 
@@ -609,7 +620,7 @@ static NSObject<CallKeepPushDelegate>* _delegate;
     callUpdate.supportsHolding = settings[@"supportsHolding"] ? [settings[@"supportsHolding"] boolValue] : NO;
     callUpdate.supportsGrouping = settings[@"supportsGrouping"] ? [settings[@"supportsGrouping"] boolValue] : NO;
     callUpdate.supportsUngrouping = settings[@"supportsUngrouping"] ? [settings[@"supportsUngrouping"] boolValue] : NO;
-
+    
     return callUpdate;
 }
 
@@ -904,13 +915,7 @@ continueUserActivity:(NSUserActivity *)userActivity
 #ifdef DEBUG
     NSLog(@"[CallKeep][CXProviderDelegate][provider:didActivateAudioSession]");
 #endif
-    NSDictionary *userInfo
-    = @{
-        AVAudioSessionInterruptionTypeKey: [NSNumber numberWithInt:AVAudioSessionInterruptionTypeEnded],
-        AVAudioSessionInterruptionOptionKey: [NSNumber numberWithInt:AVAudioSessionInterruptionOptionShouldResume]
-    };
-    [[NSNotificationCenter defaultCenter] postNotificationName:AVAudioSessionInterruptionNotification object:nil userInfo:userInfo];
-    
+    [self sendDefaultAudioInterruptionNotificationToStartAudioResource];
     [self configureAudioSession];
     [self sendEventWithNameWrapper:CallKeepDidActivateAudioSession body:@{}];
 }
@@ -921,6 +926,15 @@ continueUserActivity:(NSUserActivity *)userActivity
     NSLog(@"[CallKeep][CXProviderDelegate][provider:didDeactivateAudioSession]");
 #endif
     [self sendEventWithNameWrapper:CallKeepDidDeactivateAudioSession body:@{}];
+}
+
+-(void)sendDefaultAudioInterruptionNotificationToStartAudioResource
+{
+    NSDictionary *userInfo = @{
+        AVAudioSessionInterruptionTypeKey: [NSNumber numberWithInt:AVAudioSessionInterruptionTypeEnded],
+        AVAudioSessionInterruptionOptionKey: [NSNumber numberWithInt:AVAudioSessionInterruptionOptionShouldResume]
+    };
+    [[NSNotificationCenter defaultCenter] postNotificationName:AVAudioSessionInterruptionNotification object:nil userInfo:userInfo];
 }
 
 @end

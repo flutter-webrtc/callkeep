@@ -95,11 +95,12 @@ class FlutterCallkeep extends EventManager {
     return true;
   }
 
-  Future<bool?> _hasPhoneAccount() async {
-    return await _channel.invokeMethod<bool>(
+  Future<bool> _hasPhoneAccount() async {
+    final result = await _channel.invokeMethod<bool>(
       'hasPhoneAccount',
       <String, dynamic>{},
     );
+    return result ?? false;
   }
 
   Future<void> displayIncomingCall(
@@ -341,7 +342,7 @@ class FlutterCallkeep extends EventManager {
     }
 
     final additionalPermissions = options['additionalPermissions'] as List?;
-    final hasPermissions = await _requestPermissions(
+    final hasPermissions = await requestPermissions(
       additionalPermissions?.cast<String>(),
     );
     if (!hasPermissions) return false;
@@ -366,9 +367,7 @@ class FlutterCallkeep extends EventManager {
     await _channel.invokeMethod<void>('openPhoneAccounts', <String, dynamic>{});
   }
 
-  Future<bool> _requestPermissions(
-    List<String>? optionalPermissions,
-  ) async {
+  Future<bool> requestPermissions([List<String>? optionalPermissions]) async {
     if (isIOS) {
       return true;
     }
@@ -376,6 +375,14 @@ class FlutterCallkeep extends EventManager {
         .invokeMethod<bool>('requestPermissions', <String, dynamic>{
       'additionalPermissions': optionalPermissions ?? [],
     });
+    return resp ?? false;
+  }
+
+  Future<bool> hasPermissions() async {
+    if (isIOS) {
+      return true;
+    }
+    var resp = await _channel.invokeMethod<bool>('hasPermissions');
     return resp ?? false;
   }
 
