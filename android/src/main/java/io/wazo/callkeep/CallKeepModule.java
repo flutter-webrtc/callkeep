@@ -31,7 +31,6 @@ import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.telecom.CallAudioState;
 import android.telecom.Connection;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -156,8 +155,8 @@ public class CallKeepModule {
                 result.success(null);
             }
             break;
-            case "reportConnectedCallWithUUID": {
-                reportConnectedCallWithUUID(call.argument("uuid"));
+            case "reportStartedCallWithUUID": {
+                reportStartedCallWithUUID(call.argument("uuid"));
                 result.success(null);
             }
             break;
@@ -444,7 +443,7 @@ public class CallKeepModule {
         conn.reportDisconnect(reason);
     }
 
-    private void reportConnectedCallWithUUID(String uuid) {
+    private void reportStartedCallWithUUID(String uuid) {
         if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
             return;
         }
@@ -453,7 +452,7 @@ public class CallKeepModule {
         if (conn == null) {
             return;
         }
-        conn.onConnected();
+        conn.onStarted();
     }
 
 

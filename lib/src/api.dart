@@ -156,9 +156,19 @@ class FlutterCallkeep extends EventManager {
     }
   }
 
-  Future<void> reportConnectedCallWithUUID(String uuid) async {
-    await _channel.invokeMethod<void>(
-        'reportConnectedCallWithUUID', <String, dynamic>{'uuid': uuid});
+  Future<void> reportConnectedOutgoingCallWithUUID(String uuid) async {
+    //only available on iOS
+    if (isIOS) {
+      await _channel.invokeMethod<void>(
+          'reportConnectedOutgoingCallWithUUID', <String, dynamic>{'uuid': uuid});
+    }
+  }
+
+  Future<void> reportStartedCallWithUUID(String uuid) async {
+    if (!isIOS) {
+      await _channel.invokeMethod<void>(
+          'reportStartedCallWithUUID', <String, dynamic>{'uuid': uuid});
+    }
   }
 
   Future<void> reportEndCallWithUUID(String uuid, int reason) async =>

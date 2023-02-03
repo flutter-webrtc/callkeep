@@ -13,23 +13,23 @@
 #import <PushKit/PushKit.h>
 #import "CallKeepPushDelegate.h"
 
-static const NSString *_Nonnull const CallKeepHandleStartCallNotification = @"CallKeepHandleStartCallNotification";
-static const NSString *_Nonnull const CallKeepDidReceiveStartCallAction = @"CallKeepDidReceiveStartCallAction";
-static const NSString *_Nonnull const CallKeepPerformAnswerCallAction = @"CallKeepPerformAnswerCallAction";
-static const NSString *_Nonnull const CallKeepPerformEndCallAction = @"CallKeepPerformEndCallAction";
-static const NSString *_Nonnull const CallKeepDidActivateAudioSession = @"CallKeepDidActivateAudioSession";
-static const NSString *_Nonnull const CallKeepDidDeactivateAudioSession = @"CallKeepDidDeactivateAudioSession";
-static const NSString *_Nonnull const CallKeepDidDisplayIncomingCall = @"CallKeepDidDisplayIncomingCall";
-static const NSString *_Nonnull const CallKeepDidFailCallAction = @"CallKeepDidFailCallAction";
-static const NSString *_Nonnull const CallKeepDidPerformSetMutedCallAction = @"CallKeepDidPerformSetMutedCallAction";
-static const NSString *_Nonnull const CallKeepPerformPlayDTMFCallAction = @"CallKeepDidPerformDTMFAction";
-static const NSString *_Nonnull const CallKeepDidToggleHoldAction = @"CallKeepDidToggleHoldAction";
-static const NSString *_Nonnull const CallKeepProviderReset = @"CallKeepProviderReset";
-static const NSString *_Nonnull const CallKeepCheckReachability = @"CallKeepCheckReachability";
-static const NSString *_Nonnull const CallKeepDidLoadWithEvents = @"CallKeepDidLoadWithEvents";
-static const NSString *_Nonnull const CallKeepPushKitToken = @"CallKeepPushKitToken";
-static const NSString *_Nonnull const CallKeepActionAnswer = @"CallKeepActionAnswer";
-static const NSString *_Nonnull const CallKeepActionEnd = @"CallKeepActionEnd";
+static NSString *_Nonnull const CallKeepHandleStartCallNotification = @"CallKeepHandleStartCallNotification";
+static NSString *_Nonnull const CallKeepDidReceiveStartCallAction = @"CallKeepDidReceiveStartCallAction";
+static NSString *_Nonnull const CallKeepPerformAnswerCallAction = @"CallKeepPerformAnswerCallAction";
+static NSString *_Nonnull const CallKeepPerformEndCallAction = @"CallKeepPerformEndCallAction";
+static NSString *_Nonnull const CallKeepDidActivateAudioSession = @"CallKeepDidActivateAudioSession";
+static NSString *_Nonnull const CallKeepDidDeactivateAudioSession = @"CallKeepDidDeactivateAudioSession";
+static NSString *_Nonnull const CallKeepDidDisplayIncomingCall = @"CallKeepDidDisplayIncomingCall";
+static NSString *_Nonnull const CallKeepDidFailCallAction = @"CallKeepDidFailCallAction";
+static NSString *_Nonnull const CallKeepDidPerformSetMutedCallAction = @"CallKeepDidPerformSetMutedCallAction";
+static NSString *_Nonnull const CallKeepPerformPlayDTMFCallAction = @"CallKeepDidPerformDTMFAction";
+static NSString *_Nonnull const CallKeepDidToggleHoldAction = @"CallKeepDidToggleHoldAction";
+static NSString *_Nonnull const CallKeepProviderReset = @"CallKeepProviderReset";
+static NSString *_Nonnull const CallKeepCheckReachability = @"CallKeepCheckReachability";
+static NSString *_Nonnull const CallKeepDidLoadWithEvents = @"CallKeepDidLoadWithEvents";
+static NSString *_Nonnull const CallKeepPushKitToken = @"CallKeepPushKitToken";
+static NSString *_Nonnull const CallKeepActionAnswer = @"CallKeepActionAnswer";
+static NSString *_Nonnull const CallKeepActionEnd = @"CallKeepActionEnd";
 
 @interface CallKeep: NSObject<CXProviderDelegate, PKPushRegistryDelegate>
 @property (nonatomic, strong, nullable) CXCallController *callKeepCallController;

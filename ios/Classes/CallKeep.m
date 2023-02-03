@@ -121,8 +121,8 @@ static NSObject<CallKeepPushDelegate>* _delegate;
     else if ([@"reportConnectingOutgoingCallWithUUID" isEqualToString:method]) {
         [self reportConnectingOutgoingCallWithUUID:argsMap[@"uuid"]];
     }
-    else if ([@"reportConnectedCallWithUUID" isEqualToString:method]) {
-        [self reportConnectedCallWithUUID:argsMap[@"uuid"]];
+    else if ([@"reportConnectedOutgoingCallWithUUID" isEqualToString:method]) {
+        [self reportConnectedOutgoingCallWithUUID:argsMap[@"uuid"]];
     }
     else if([@"reportUpdatedCall" isEqualToString:method]){
         [self reportUpdatedCall:argsMap[@"uuid"] contactIdentifier:argsMap[@"callerName"]];
@@ -335,7 +335,6 @@ static NSObject<CallKeepPushDelegate>* _delegate;
     [startCallAction setContactIdentifier:callerName];
     
     CXTransaction *transaction = [[CXTransaction alloc] initWithAction:startCallAction];
-    
     [self requestTransaction:transaction withSuccessListener:^(CXAction* action) {
         // CXStartCallAction
         if ([action isKindOfClass:[CXStartCallAction class]]) {
@@ -410,7 +409,7 @@ static NSObject<CallKeepPushDelegate>* _delegate;
     [self.callKeepProvider reportOutgoingCallWithUUID:uuid startedConnectingAtDate:[NSDate date]];
 }
 
--(void) reportConnectedCallWithUUID:(NSString *)uuidString
+-(void) reportConnectedOutgoingCallWithUUID:(NSString *)uuidString
 {
     NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:uuidString];
     [self.callKeepProvider reportOutgoingCallWithUUID:uuid connectedAtDate:[NSDate date]];

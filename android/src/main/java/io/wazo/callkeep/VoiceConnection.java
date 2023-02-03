@@ -41,7 +41,6 @@ import android.os.Handler;
 import android.telecom.CallAudioState;
 import android.telecom.Connection;
 import android.telecom.DisconnectCause;
-import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
 import android.util.Log;
 
@@ -230,9 +229,9 @@ public class VoiceConnection extends Connection {
         Log.d(TAG, "onReject executed");
     }
 
-    public void onConnected() {
+    public void onStarted() {
         setCurrent();
-        Log.d(TAG, "onConnected executed");
+        Log.d(TAG, "onStarted executed");
     }
 
     public void setCurrent() {
