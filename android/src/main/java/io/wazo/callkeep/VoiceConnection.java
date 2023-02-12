@@ -192,6 +192,7 @@ public class VoiceConnection extends Connection {
         }
         if (causeCode != null) {
             close(causeCode);
+            sendCallRequestToActivity(ACTION_END_CALL, connectionData);
         }
     }
 
