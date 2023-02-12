@@ -278,7 +278,10 @@ public class CallKeepModule {
     }
 
 
-    private void displayIncomingCall(String uuid, String handle, String callerName, Map<String, String> additionalData) {
+    private void displayIncomingCall(String uuid,
+                                     String handle,
+                                     String callerName,
+                                     Map<String, String> additionalData) {
         Log.d(TAG, "Called displayIncomingCall");
         if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
             return;
@@ -287,7 +290,7 @@ public class CallKeepModule {
         Log.d(TAG, "displayIncomingCall number: " + handle + ", callerName: " + callerName);
 
         Bundle extras = new Bundle();
-        Uri uri = Uri.fromParts(PhoneAccount.SCHEME_TEL, handle, null);
+        Uri uri = Uri.fromParts(getHandleSchema(), handle, null);
 
         Bundle callExtras = createCallBundle(uuid, handle, callerName, additionalData);
 
@@ -314,7 +317,10 @@ public class CallKeepModule {
 
 
     @SuppressLint("MissingPermission")
-    private void startCall(String uuid, String handle, String callerName, Map<String, String> additionalData) {
+    private void startCall(String uuid,
+                           String handle,
+                           String callerName,
+                           Map<String, String> additionalData) {
         if (!isConnectionServiceAvailable() || !hasPhoneAccount() || !hasPermissions() || handle == null) {
             return;
         }
@@ -322,13 +328,22 @@ public class CallKeepModule {
         Log.d(TAG, "startCall number: " + handle + ", callerName: " + callerName);
 
         Bundle extras = new Bundle();
-        Uri uri = Uri.fromParts(PhoneAccount.SCHEME_TEL, handle, null);
+
+        Uri uri = Uri.fromParts(getHandleSchema(), handle, null);
 
         Bundle callExtras = createCallBundle(uuid, handle, callerName, additionalData);
 
         extras.putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, accountHandle);
         extras.putBundle(TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS, callExtras);
         telecomManager.placeCall(uri, extras);
+    }
+
+    private String getHandleSchema()  {
+        if (settings == null || settings.isNull("handleSchema")) {
+            return PhoneAccount.SCHEME_TEL;
+        } else {
+            return Objects.requireNonNull(settings).getString("handleSchema");
+        }
     }
 
     private Bundle createCallBundle(String uuid, String handle, String callerName, Map<String, String> additionalData) {
@@ -411,7 +426,7 @@ public class CallKeepModule {
 
         boolean hasSim = telephonyManager.getSimState() != TelephonyManager.SIM_STATE_ABSENT;
 
-        boolean hasDefaultAccount = telecomManager.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL) != null;
+        boolean hasDefaultAccount = telecomManager.getDefaultOutgoingPhoneAccount(getHandleSchema()) != null;
 
         result.success(!hasSim || !hasDefaultAccount);
     }
