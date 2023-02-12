@@ -105,22 +105,18 @@ public class VoiceConnection extends Connection {
 
     public void setMuted(boolean muted) {
         CallAudioState newAudioState;
-        if (muted) {
-            newAudioState = new CallAudioState(true,
-                    getCallAudioState().getRoute(),
-                    getCallAudioState().getSupportedRouteMask());
-        } else {
-            newAudioState = new CallAudioState(false,
-                    getCallAudioState().getRoute(),
-                    getCallAudioState().getSupportedRouteMask());
-        }
+        newAudioState = new CallAudioState(muted,
+                getCallAudioState().getRoute(),
+                getCallAudioState().getSupportedRouteMask());
         onCallAudioStateChanged(newAudioState);
     }
 
     public void setAudio(Integer audioRoute) {
-        CallAudioState newAudioState = new CallAudioState(false,
+        CallAudioState newAudioState = new CallAudioState(
+                getCallAudioState().isMuted(),
                 audioRoute,
-                getCallAudioState().getSupportedRouteMask());
+                getCallAudioState().getSupportedRouteMask()
+        );
         onCallAudioStateChanged(newAudioState);
     }
 
