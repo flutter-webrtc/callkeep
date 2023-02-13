@@ -259,13 +259,13 @@ class FlutterCallkeep extends EventManager {
       ? await _channel.invokeMethod<void>('checkSpeaker', <String, dynamic>{})
       : throw Exception('CallKeep.checkSpeaker was called from unsupported OS');
 
-  Future<void> setAvailable(String state) async {
+  Future<void> setAvailable({bool available = true}) async {
     if (isIOS) {
       return;
     }
     // Tell android that we are able to make outgoing calls
     await _channel
-        .invokeMethod<void>('setAvailable', <String, dynamic>{'state': state});
+        .invokeMethod<void>('setAvailable', <String, dynamic>{'available': available});
   }
 
   Future<void> setCurrentCallActive(String callUUID) async {
@@ -292,11 +292,11 @@ class FlutterCallkeep extends EventManager {
       await _channel.invokeMethod<void>(
           'setOnHold', <String, dynamic>{'uuid': uuid, 'hold': shouldHold});
 
-  Future<void> setReachable() async {
+  Future<void> setReachable({bool reachable = true}) async {
     if (isIOS) {
       return;
     }
-    await _channel.invokeMethod<void>('setReachable', <String, dynamic>{});
+    await _channel.invokeMethod<void>('setReachable', <String, dynamic>{'reachable': reachable,});
   }
 
   // @deprecated

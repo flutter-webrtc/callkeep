@@ -20,11 +20,14 @@ package io.wazo.callkeep;
 import static io.wazo.callkeep.CallKeepConstants.ACTION_CHECK_REACHABILITY;
 import static io.wazo.callkeep.CallKeepConstants.ACTION_FAILED_CALL;
 import static io.wazo.callkeep.CallKeepConstants.ACTION_ONGOING_CALL;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_WAKEUP_CALL;
+import static io.wazo.callkeep.CallKeepConstants.BROADCAST_RECEIVER_META_DATA_KEY;
 import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALLER_NAME;
 import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALL_ATTRIB;
 import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALL_NUMBER;
 import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALL_UUID;
 import static io.wazo.callkeep.CallKeepConstants.FOREGROUND_SERVICE_TYPE_MICROPHONE;
+import static io.wazo.callkeep.CallKeepConstants.HOLD_SUPPORT_DATA_KEY;
 
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningTaskInfo;
@@ -35,6 +38,10 @@ import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ServiceInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.net.Uri;
@@ -61,6 +68,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 import io.wazo.callkeep.utils.ConstraintsMap;
 
@@ -104,6 +112,12 @@ public class VoiceConnectionService extends ConnectionService {
         currentConnectionService = this;
     }
 
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        checkReachability();
+    }
+
     public static void setPhoneAccountHandle(PhoneAccountHandle phoneAccountHandle) {
         VoiceConnectionService.phoneAccountHandle = phoneAccountHandle;
     }
@@ -125,9 +139,10 @@ public class VoiceConnectionService extends ConnectionService {
         }
     }
 
-    public static void setReachable() {
+
+    public static void setReachable(Boolean value) {
         Log.d(TAG, "setReachable");
-        isReachable = true;
+        isReachable = value;
     }
 
     public static void deinitConnection(String connectionId) {
@@ -139,6 +154,18 @@ public class VoiceConnectionService extends ConnectionService {
         }
 
         currentConnections.remove(connectionId);
+    }
+
+    private ConstraintsMap getMetadataSettings() {
+        try {
+            Bundle metaData = getMetaData();
+            if (metaData != null) {
+                return new ConstraintsMap(bundleToMap(metaData));
+            }
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e(TAG, null, e);
+        }
+        return new ConstraintsMap();
     }
 
     @Override
@@ -193,7 +220,8 @@ public class VoiceConnectionService extends ConnectionService {
 
     private Connection makeOutgoingCall(ConnectionRequest request) {
         fixMissingNumber(request.getAddress(), request.getExtras());
-        if (wakeAndCheckAvailability(request.getExtras(), false)) {
+        fixMissingCallId(request.getExtras());
+        if (!wakeAndCheckAvailability(request.getExtras(), false)) {
             return Connection.createFailedConnection(new DisconnectCause(DisconnectCause.LOCAL));
         } else {
             VoiceConnection connection = makeOngoingCall(request, request.getExtras());
@@ -226,16 +254,24 @@ public class VoiceConnectionService extends ConnectionService {
         }
     }
 
+    private void fixMissingCallId(Bundle callExtras) {
+        String extrasUUID = callExtras.getString(EXTRA_CALL_UUID);
+        if (extrasUUID == null) {
+            callExtras.putString(EXTRA_CALL_UUID, UUID.randomUUID().toString());
+        }
+    }
+
     private boolean wakeAndCheckAvailability(Bundle callExtras, Boolean forceWakeUp) {
-        boolean isForeground = VoiceConnectionService.isRunning(this.getApplicationContext());
+        boolean isRunning = VoiceConnectionService.isRunning(this.getApplicationContext());
         // Wakeup application if needed
-        if (!isForeground || forceWakeUp) {
+        if (!isRunning || forceWakeUp) {
             Log.d(TAG, "makeOngoingCall: Waking up application");
             this.wakeUpApplication(callExtras);
-        } else if (!this.canMakeOutgoingCall() && isReachable) {
-            Log.d(TAG, "makeOngoingCall: not available");
+        }
+        if (this.canMakeOutgoingCall() && isReachable) {
             return true;
         }
+        Log.d(TAG, "makeOngoingCall: not available");
         return false;
     }
 
@@ -315,20 +351,23 @@ public class VoiceConnectionService extends ConnectionService {
         if (name != null) {
             CallKeepBackgroundMessagingService.acquireWakeLockNow(this.getApplicationContext());
         }
-    }
-
-    private void wakeUpAfterReachabilityTimeout(ConnectionRequest request) {
-        Log.d(TAG, "checkReachability timeout, force wakeup");
-        wakeUpApplication(request.getExtras());
+        broadcastAction(ACTION_WAKEUP_CALL, bundleToMap(extras));
     }
 
     private void checkReachability(ConnectionRequest request) {
         Log.d(TAG, "checkReachability");
-
-        sendCallRequestToActivity(ACTION_CHECK_REACHABILITY, null);
-
+        checkReachability();
         new Handler().postDelayed(
-                () -> wakeUpAfterReachabilityTimeout(request), 2000);
+                () -> {
+                    Log.d(TAG, "checkReachability timeout, force wakeup");
+                    wakeUpApplication(request.getExtras());
+                },
+                2000);
+    }
+
+    private void checkReachability() {
+        sendCallRequestToActivity(ACTION_CHECK_REACHABILITY, null);
+        broadcastAction(ACTION_CHECK_REACHABILITY, null);
     }
 
     private Boolean canMakeOutgoingCall() {
@@ -337,8 +376,15 @@ public class VoiceConnectionService extends ConnectionService {
 
     private void initConnection(String uuid, VoiceConnection connection, Bundle extras, PhoneAccountHandle accountHandle) {
         int capabilities = connection.getConnectionCapabilities() | Connection.CAPABILITY_MUTE;
-        if (!settings.isNull("supportsHolding") && settings.getBoolean("supportsHolding")) {
-            capabilities |= Connection.CAPABILITY_SUPPORT_HOLD;
+        if (settings != null) {
+            if (!settings.isNull("supportsHolding") && settings.getBoolean("supportsHolding")) {
+                capabilities |= Connection.CAPABILITY_SUPPORT_HOLD;
+            }
+        } else {
+            ConstraintsMap metDataSettings = getMetadataSettings();
+            if (Boolean.TRUE.equals(metDataSettings.getBoolean(HOLD_SUPPORT_DATA_KEY))) {
+                capabilities |= Connection.CAPABILITY_SUPPORT_HOLD;
+            }
         }
         connection.setConnectionCapabilities(capabilities);
 
@@ -390,16 +436,38 @@ public class VoiceConnectionService extends ConnectionService {
     /*
      * Send call request to the RNCallKeepModule
      */
+    private void broadcastAction(final String action, @Nullable final HashMap<?, ?> attributeMap) {
+        try {
+            Bundle appMetaData = getMetaData();
+            if (appMetaData == null) return;
+            String receiverName = appMetaData.getString(BROADCAST_RECEIVER_META_DATA_KEY);
+            if (receiverName == null) return;
+            Class<?> clazz = Class.forName(receiverName);
+            Intent intent = new Intent(getApplicationContext(), clazz);
+            intent.setAction(getPackageName() + "." + action);
+            if (attributeMap != null) {
+                intent.putExtra(EXTRA_CALL_ATTRIB, attributeMap);
+            }
+            sendBroadcast(intent);
+        } catch (ClassNotFoundException | PackageManager.NameNotFoundException e) {
+            Log.e(TAG, null, e);
+        }
+    }
+
     private void sendCallRequestToActivity(final String action, @Nullable final HashMap attributeMap) {
         new Handler().post(() -> {
             Intent intent = new Intent(action);
             if (attributeMap != null) {
-                Bundle extras = new Bundle();
-                extras.putSerializable(EXTRA_CALL_ATTRIB, attributeMap);
-                intent.putExtras(extras);
+                intent.putExtra(EXTRA_CALL_ATTRIB, attributeMap);
             }
             LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
         });
+    }
+
+    @Nullable
+    protected Bundle getMetaData() throws PackageManager.NameNotFoundException {
+        ServiceInfo serviceInfo = getPackageManager().getServiceInfo(new ComponentName(this, getClass()), PackageManager.GET_META_DATA);
+        return serviceInfo.metaData;
     }
 
     private HashMap<String, Object> bundleToMap(Bundle extras) {

@@ -75,8 +75,14 @@ public class VoiceConnection extends Connection {
     }
 
     private void updateDisplay() {
-        setAddress(Uri.parse(String.valueOf(connectionData.get(EXTRA_CALL_NUMBER))), TelecomManager.PRESENTATION_ALLOWED);
-        setCallerDisplayName(String.valueOf(connectionData.get(EXTRA_CALLER_NAME)), TelecomManager.PRESENTATION_ALLOWED);
+        Object address = connectionData.get(EXTRA_CALL_NUMBER);
+        Object name = connectionData.get(EXTRA_CALLER_NAME);
+        if (address instanceof String) {
+            setAddress(Uri.parse((String) address), TelecomManager.PRESENTATION_ALLOWED);
+        }
+        if (name instanceof String) {
+            setCallerDisplayName((String) name, TelecomManager.PRESENTATION_ALLOWED);
+        }
     }
 
     @Override

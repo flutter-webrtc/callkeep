@@ -758,6 +758,7 @@ continueUserActivity:(NSUserActivity *)userActivity
     INInteraction *interaction = userActivity.interaction;
     INPerson *contact;
     NSString *handle;
+    NSString *displayName;
     BOOL isAudioCall;
     BOOL isVideoCall;
     
@@ -788,6 +789,7 @@ continueUserActivity:(NSUserActivity *)userActivity
 #endif
     
     if (isAudioCall) {
+        INStartCallIntent
         INStartAudioCallIntent *startAudioCallIntent = (INStartAudioCallIntent *)interaction.intent;
         contact = [startAudioCallIntent.contacts firstObject];
     } else if (isVideoCall) {
@@ -797,11 +799,13 @@ continueUserActivity:(NSUserActivity *)userActivity
     
     if (contact != nil) {
         handle = contact.personHandle.value;
+        displayName = contact.displayName;
     }
     
     if (handle != nil && handle.length > 0 ){
         NSDictionary *userInfo = @{
             @"handle": handle,
+            @"name": displayName,
             @"video": @(isVideoCall)
         };
         

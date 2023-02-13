@@ -1,6 +1,8 @@
 package io.wazo.callkeep;
 
 public class CallKeepConstants {
+    public static final String ACTION_WAKEUP_CALL = "ACTION_WAKEUP_CALL";
+
     public static final String ACTION_ANSWER_CALL = "ACTION_ANSWER_CALL";
     public static final String ACTION_REJECT_CALL = "ACTION_REJECT_CALL";
     public static final String ACTION_INCOMING_CALL = "ACTION_INCOMING_CALL";
@@ -23,6 +25,10 @@ public class CallKeepConstants {
     public static final String EXTRA_CALL_DATA = "EXTRA_CALL_EXTRAS";
     public static final String EXTRA_CALLER_NAME = "EXTRA_CALLER_NAME";
     public static final String EXTRA_CALL_ATTRIB = "EXTRA_CALL_ATTRIB";
+
+
+    public static final String HOLD_SUPPORT_DATA_KEY = "io.wazo.callkeep.HoldSupported";
+    public static final String BROADCAST_RECEIVER_META_DATA_KEY = "io.wazo.callkeep.BroadcastReceiver";
 
     public static final int FOREGROUND_SERVICE_TYPE_MICROPHONE = 128;
 }

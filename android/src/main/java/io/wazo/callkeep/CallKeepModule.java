@@ -203,7 +203,7 @@ public class CallKeepModule {
             }
             break;
             case "setReachable": {
-                setReachable();
+                setReachable(call.argument("reachable"));
                 result.success(null);
             }
             break;
@@ -563,8 +563,8 @@ public class CallKeepModule {
     }
 
 
-    private void setReachable() {
-        VoiceConnectionService.setReachable();
+    private void setReachable(Boolean active) {
+        VoiceConnectionService.setReachable(active);
     }
 
 
