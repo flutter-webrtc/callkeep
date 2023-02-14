@@ -789,7 +789,6 @@ continueUserActivity:(NSUserActivity *)userActivity
 #endif
     
     if (isAudioCall) {
-        INStartCallIntent
         INStartAudioCallIntent *startAudioCallIntent = (INStartAudioCallIntent *)interaction.intent;
         contact = [startAudioCallIntent.contacts firstObject];
     } else if (isVideoCall) {

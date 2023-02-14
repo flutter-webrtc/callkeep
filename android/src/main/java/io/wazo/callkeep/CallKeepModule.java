@@ -71,7 +71,7 @@ public class CallKeepModule {
     private static TelecomManager telecomManager;
     private static TelephonyManager telephonyManager;
     private final Context context;
-    public static PhoneAccountHandle accountHandle;
+    private static PhoneAccountHandle accountHandle;
     private boolean isReceiverRegistered = false;
     private VoiceBroadcastReceiver voiceBroadcastReceiver;
     private ConstraintsMap settings;
@@ -82,6 +82,10 @@ public class CallKeepModule {
     public CallKeepModule(Context context, BinaryMessenger messenger) {
         this.context = context;
         this.eventChannel = new MethodChannel(messenger, "FlutterCallKeep.Event");
+    }
+
+    public static PhoneAccountHandle getAccountHandle() {
+        return accountHandle;
     }
 
     public void setActivity(Activity activity) {
@@ -647,9 +651,6 @@ public class CallKeepModule {
         }
 
         PhoneAccount account = builder.build();
-
-        telephonyManager = (TelephonyManager) this.getAppContext().getSystemService(Context.TELEPHONY_SERVICE);
-
         telecomManager.registerPhoneAccount(account);
         Log.d(TAG, "Registered phone account " + account);
     }
@@ -659,9 +660,9 @@ public class CallKeepModule {
             Context context = this.getAppContext();
             ComponentName cName = new ComponentName(context, VoiceConnectionService.class);
             String appName = this.getApplicationName(context);
-
             accountHandle = new PhoneAccountHandle(cName, appName);
             telecomManager = (TelecomManager) context.getSystemService(Context.TELECOM_SERVICE);
+            telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         }
     }
 
