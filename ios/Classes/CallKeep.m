@@ -73,62 +73,49 @@ static NSObject<CallKeepPushDelegate>* _delegate;
     } else if ([@"displayIncomingCall" isEqualToString:method]) {
         [self displayIncomingCall:argsMap[@"uuid"] handle:argsMap[@"handle"] handleType:argsMap[@"handleType"] hasVideo:[argsMap[@"hasVideo"] boolValue] callerName:argsMap[@"callerName"] payload:argsMap[@"additionalData"]];
         result(nil);
-    }
-    else if ([@ "startCall" isEqualToString:method]) {
+    } else if ([@ "startCall" isEqualToString:method]) {
         [self startCall:argsMap[@"uuid"] handle:argsMap[@"handle"] callerName:argsMap[@"callerName"] handleType:argsMap[@"handleType"] video:[argsMap[@"hasVideo"] boolValue]];
         result(nil);
-    }
-    else if ([@"isCallActive" isEqualToString:method]) {
+    } else if ([@"isCallActive" isEqualToString:method]) {
         result(@([self isCallActive:argsMap[@"uuid"]]));
-    }
-    else if ([@"activeCalls" isEqualToString:method]) {
+    } else if ([@"activeCalls" isEqualToString:method]) {
         result([self activeCalls]);
-    }
-    else if ([@"endCall" isEqualToString:method]) {
+    } else if ([@"answerIncomingCall" isEqualToString:method]) {
+        [self answerIncomingCall:argsMap[@"uuid"]];
+        result(nil);
+    } else if ([@"endCall" isEqualToString:method]) {
         [self endCall:argsMap[@"uuid"]];
         result(nil);
-    }
-    else if ([@"endAllCalls" isEqualToString:method]) {
+    } else if ([@"endAllCalls" isEqualToString:method]) {
         [self endAllCalls];
         result(nil);
-    }
-    else if ([@ "setOnHold" isEqualToString:method]) {
+    } else if ([@ "setOnHold" isEqualToString:method]) {
         [self setOnHold:argsMap[@"uuid"] shouldHold:[argsMap[@"hold"] boolValue]];
         result(nil);
-    }
-    else if ([@ "reportEndCallWithUUID" isEqualToString:method]) {
+    } else if ([@ "reportEndCallWithUUID" isEqualToString:method]) {
         [self reportEndCallWithUUID:argsMap[@"uuid"] reason:[argsMap[@"reason"] intValue]];
         result(nil);
-    }
-    else if ([@"setMutedCall" isEqualToString:method]) {
+    } else if ([@"setMutedCall" isEqualToString:method]) {
         [self setMutedCall:argsMap[@"uuid"] muted:[argsMap[@"muted"] boolValue]];
         result(nil);
-    }
-    else if ([@ "sendDTMF" isEqualToString:method]) {
+    } else if ([@ "sendDTMF" isEqualToString:method]) {
         [self sendDTMF:argsMap[@"uuid"] dtmf:argsMap[@"key"]];
         result(nil);
-    }
-    else if ([@ "updateDisplay" isEqualToString:method]) {
+    } else if ([@ "updateDisplay" isEqualToString:method]) {
         [self updateDisplay:argsMap[@"uuid"] callerName:argsMap[@"callerName"] uri:argsMap[@"handle"]];
         result(nil);
-    }
-    else if([@ "checkIfBusy" isEqualToString:method]){
+    } else if([@ "checkIfBusy" isEqualToString:method]){
         [self checkIfBusyWithResult:result];
-    }
-    else if([@ "checkSpeaker" isEqualToString:method]){
+    } else if([@ "checkSpeaker" isEqualToString:method]){
         [self checkSpeakerResult:result];
-    }
-    else if ([@"reportConnectingOutgoingCallWithUUID" isEqualToString:method]) {
+    } else if ([@"reportConnectingOutgoingCallWithUUID" isEqualToString:method]) {
         [self reportConnectingOutgoingCallWithUUID:argsMap[@"uuid"]];
-    }
-    else if ([@"reportConnectedOutgoingCallWithUUID" isEqualToString:method]) {
+    } else if ([@"reportConnectedOutgoingCallWithUUID" isEqualToString:method]) {
         [self reportConnectedOutgoingCallWithUUID:argsMap[@"uuid"]];
-    }
-    else if([@"reportUpdatedCall" isEqualToString:method]){
+    } else if([@"reportUpdatedCall" isEqualToString:method]){
         [self reportUpdatedCall:argsMap[@"uuid"] contactIdentifier:argsMap[@"callerName"]];
         result(nil);
-    }
-    else {
+    } else {
         return NO;
     }
     return YES;
@@ -346,6 +333,18 @@ static NSObject<CallKeepPushDelegate>* _delegate;
             [sharedProvider reportCallWithUUID:startCallAction.callUUID updated:callUpdate];
         }
     }];
+}
+
+-(void) answerIncomingCall:(NSString *)uuidString
+{
+#ifdef DEBUG
+    NSLog(@"[CallKeep][answerIncomingCall] uuidString = %@", uuidString);
+#endif
+    NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:uuidString];
+    CXAnswerCallAction *answerCallAction = [[CXAnswerCallAction alloc] initWithCallUUID:uuid];
+    CXTransaction *transaction = [[CXTransaction alloc] initWithAction:answerCallAction];
+    
+    [self requestTransaction:transaction];
 }
 
 -(void) endCall:(NSString *)uuidString

@@ -122,12 +122,10 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<void> answerIncomingCall(String uuid) async {
-    if (!isIOS) {
-      await _channel.invokeMethod<void>(
-        'answerIncomingCall',
-        <String, dynamic>{'uuid': uuid},
-      );
-    }
+    await _channel.invokeMethod<void>(
+      'answerIncomingCall',
+      <String, dynamic>{'uuid': uuid},
+    );
   }
 
   Future<void> startCall(
