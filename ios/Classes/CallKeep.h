@@ -44,7 +44,7 @@ static NSString *_Nonnull const CallKeepActionEnd = @"CallKeepActionEnd";
 
 + (BOOL)application:(UIApplication * _Nonnull)application
 continueUserActivity:(NSUserActivity * _Nonnull)userActivity
-  restorationHandler:(void(^ _Nonnull)(NSArray<id<UIUserActivityRestoring>> * __nullable restorableObjects))restorationHandler;
+  restorationHandler:(void(^ _Nonnull)(NSArray<id<UIUserActivityRestoring>> * _Nonnull restorableObjects))restorationHandler;
 
 + (void)setDelegate:(NSObject<CallKeepPushDelegate>* _Nullable)delegate;
 

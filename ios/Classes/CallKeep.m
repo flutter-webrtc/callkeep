@@ -750,7 +750,7 @@ static NSObject<CallKeepPushDelegate>* _delegate;
 
 + (BOOL)application:(UIApplication *)application
 continueUserActivity:(NSUserActivity *)userActivity
- restorationHandler:(void(^)(NSArray<id<UIUserActivityRestoring>> * __nullable restorableObjects))restorationHandler
+ restorationHandler:(void(^)(NSArray<id<UIUserActivityRestoring>> * _Nonnull restorableObjects))restorationHandler
 {
 #ifdef DEBUG
     NSLog(@"[CallKeep][application:continueUserActivity]");
