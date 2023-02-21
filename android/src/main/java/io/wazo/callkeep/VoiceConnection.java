@@ -94,36 +94,46 @@ public class VoiceConnection extends Connection {
         }
     }
 
-    @Override
-    public void onCallAudioStateChanged(CallAudioState state) {
-        super.onCallAudioStateChanged(state);
-        if (!Objects.equals(connectionData.get("isMuted"), state.isMuted())) {
-            connectionData.put("isMuted", state.isMuted());
-            sendCallRequestToActivity(state.isMuted() ? ACTION_MUTE_CALL : ACTION_UNMUTE_CALL, connectionData);
-        }
-        if (!Objects.equals(connectionData.get("audioRoute"), state.getRoute())) {
-            connectionData.put("audioRoute", state.getRoute());
-            HashMap<String, Object> data = new HashMap<>(connectionData);
-            data.put("audioRoute", state.getRoute());
-            sendCallRequestToActivity(ACTION_AUDIO_CALL, data);
-        }
-    }
-
     public void setMuted(boolean muted) {
-        CallAudioState newAudioState;
-        newAudioState = new CallAudioState(muted,
-                getCallAudioState().getRoute(),
-                getCallAudioState().getSupportedRouteMask());
+        CallAudioState currentAudioState = getCurrentAudioState();
+        CallAudioState newAudioState = new CallAudioState(muted,
+                currentAudioState.getRoute(),
+                currentAudioState.getSupportedRouteMask()
+        );
         onCallAudioStateChanged(newAudioState);
     }
 
     public void setAudio(Integer audioRoute) {
+        CallAudioState currentAudioState = getCurrentAudioState();
         CallAudioState newAudioState = new CallAudioState(
-                getCallAudioState().isMuted(),
+                currentAudioState.isMuted(),
                 audioRoute,
-                getCallAudioState().getSupportedRouteMask()
+                currentAudioState.getSupportedRouteMask()
         );
         onCallAudioStateChanged(newAudioState);
+    }
+
+    @Override
+    public void onCallAudioStateChanged(CallAudioState state) {
+        super.onCallAudioStateChanged(state);
+        if (state != null) {
+            if (!Objects.equals(connectionData.get("isMuted"), state.isMuted())) {
+                connectionData.put("isMuted", state.isMuted());
+                sendCallRequestToActivity(state.isMuted() ? ACTION_MUTE_CALL : ACTION_UNMUTE_CALL, connectionData);
+            }
+            if (!Objects.equals(connectionData.get("audioRoute"), state.getRoute())) {
+                connectionData.put("audioRoute", state.getRoute());
+                HashMap<String, Object> data = new HashMap<>(connectionData);
+                data.put("audioRoute", state.getRoute());
+                sendCallRequestToActivity(ACTION_AUDIO_CALL, data);
+            }
+        }
+    }
+
+    private CallAudioState getCurrentAudioState() {
+        CallAudioState current = getCallAudioState();
+        if (current != null) return current;
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -132,7 +142,7 @@ public class VoiceConnection extends Connection {
         Log.d(TAG, "onAnswer called");
         Log.d(TAG, "onAnswer ignored");
     }
-    
+
     @Override
     public void onAnswer(int videoState) {
         super.onAnswer(videoState);
