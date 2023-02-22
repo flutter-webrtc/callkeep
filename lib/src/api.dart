@@ -157,8 +157,8 @@ class FlutterCallkeep extends EventManager {
   Future<void> reportConnectedOutgoingCallWithUUID(String uuid) async {
     //only available on iOS
     if (isIOS) {
-      await _channel.invokeMethod<void>(
-          'reportConnectedOutgoingCallWithUUID', <String, dynamic>{'uuid': uuid});
+      await _channel.invokeMethod<void>('reportConnectedOutgoingCallWithUUID',
+          <String, dynamic>{'uuid': uuid});
     }
   }
 
@@ -169,9 +169,20 @@ class FlutterCallkeep extends EventManager {
     }
   }
 
-  Future<void> reportEndCallWithUUID(String uuid, int reason) async =>
-      await _channel.invokeMethod<void>('reportEndCallWithUUID',
-          <String, dynamic>{'uuid': uuid, 'reason': reason});
+  Future<void> reportEndCallWithUUID(
+    String uuid,
+    int reason, {
+    bool notify = true,
+  }) async {
+    return await _channel.invokeMethod<void>(
+      'reportEndCallWithUUID',
+      <String, dynamic>{
+        'uuid': uuid,
+        'reason': reason,
+        'notify': notify,
+      },
+    );
+  }
 
   /*
    * Android explicitly states we reject a call
@@ -262,8 +273,8 @@ class FlutterCallkeep extends EventManager {
       return;
     }
     // Tell android that we are able to make outgoing calls
-    await _channel
-        .invokeMethod<void>('setAvailable', <String, dynamic>{'available': available});
+    await _channel.invokeMethod<void>(
+        'setAvailable', <String, dynamic>{'available': available});
   }
 
   Future<void> setCurrentCallActive(String callUUID) async {
@@ -294,7 +305,9 @@ class FlutterCallkeep extends EventManager {
     if (isIOS) {
       return;
     }
-    await _channel.invokeMethod<void>('setReachable', <String, dynamic>{'reachable': reachable,});
+    await _channel.invokeMethod<void>('setReachable', <String, dynamic>{
+      'reachable': reachable,
+    });
   }
 
   // @deprecated

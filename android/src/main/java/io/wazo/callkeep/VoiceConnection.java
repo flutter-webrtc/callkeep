@@ -125,6 +125,7 @@ public class VoiceConnection extends Connection {
                 connectionData.put("audioRoute", state.getRoute());
                 HashMap<String, Object> data = new HashMap<>(connectionData);
                 data.put("audioRoute", state.getRoute());
+                data.put("audioRouteName", CallAudioState.audioRouteToString(state.getRoute()));
                 sendCallRequestToActivity(ACTION_AUDIO_CALL, data);
             }
         }
@@ -183,7 +184,7 @@ public class VoiceConnection extends Connection {
         Log.d(TAG, "onDisconnect executed");
     }
 
-    public void reportDisconnect(int reason) {
+    public void reportDisconnect(int reason, boolean notify) {
         super.onDisconnect();
         Integer causeCode = null;
         switch (reason) {
@@ -208,7 +209,9 @@ public class VoiceConnection extends Connection {
         }
         if (causeCode != null) {
             close(causeCode);
-            sendCallRequestToActivity(ACTION_END_CALL, connectionData);
+            if (notify) {
+                sendCallRequestToActivity(ACTION_END_CALL, connectionData);
+            }
         }
     }
 

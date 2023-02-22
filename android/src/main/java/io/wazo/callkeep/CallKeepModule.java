@@ -155,7 +155,7 @@ public class CallKeepModule {
             }
             break;
             case "reportEndCallWithUUID": {
-                reportEndCallWithUUID(call.argument("uuid"), call.argument("reason"));
+                reportEndCallWithUUID(call.argument("uuid"), call.argument("reason"), call.argument("notify"));
                 result.success(null);
             }
             break;
@@ -450,7 +450,7 @@ public class CallKeepModule {
     }
 
 
-    private void reportEndCallWithUUID(String uuid, Integer reason) {
+    private void reportEndCallWithUUID(String uuid, Integer reason, Boolean notify) {
         if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
             return;
         }
@@ -459,7 +459,7 @@ public class CallKeepModule {
         if (conn == null) {
             return;
         }
-        conn.reportDisconnect(reason);
+        conn.reportDisconnect(reason, Boolean.TRUE.equals(notify));
     }
 
     private void reportStartedCallWithUUID(String uuid) {
