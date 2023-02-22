@@ -38,11 +38,8 @@ import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
-import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Build;
@@ -82,13 +79,24 @@ public class VoiceConnectionService extends ConnectionService {
     private static final Map<String, VoiceConnection> currentConnections = new HashMap<>();
     public static Boolean hasOutgoingCall = false;
     public static VoiceConnectionService currentConnectionService = null;
-    private static ConstraintsMap settings = null;
 
     public static VoiceConnection getConnection(String connectionId) {
         if (currentConnections.containsKey(connectionId)) {
             return currentConnections.get(connectionId);
         }
         return null;
+    }
+
+    public static ConstraintsMap getSettings(@Nullable Context context) {
+        return CallKeepModule.getSettings(context);
+    }
+
+    public static ConstraintsMap getForegroundSettings(@Nullable Context context) {
+        ConstraintsMap settings = VoiceConnectionService.getSettings(context);
+        if (settings == null) {
+            return null;
+        }
+        return settings.getMap("foregroundService");
     }
 
     public static List<String> getActiveConnections() {
@@ -129,14 +137,6 @@ public class VoiceConnectionService extends ConnectionService {
         }
 
         isAvailable = value;
-    }
-
-    public static void setSettings(ConstraintsMap settings) {
-        if (VoiceConnectionService.settings == null) {
-            VoiceConnectionService.settings = settings;
-        } else {
-            VoiceConnectionService.settings.merge(settings.toMap());
-        }
     }
 
 
@@ -281,11 +281,11 @@ public class VoiceConnectionService extends ConnectionService {
             return;
         }
         Log.d(TAG, "[VoiceConnectionService] startForegroundService");
-        if (settings == null || !settings.hasKey("foregroundService")) {
+        ConstraintsMap foregroundSettings = getForegroundSettings(getApplicationContext());
+        if (foregroundSettings == null) {
             Log.w(TAG, "[VoiceConnectionService] Not creating foregroundService because not configured");
             return;
         }
-        ConstraintsMap foregroundSettings = settings.getMap("foregroundService");
         String NOTIFICATION_CHANNEL_ID = foregroundSettings.getString("channelId");
         String channelName = foregroundSettings.getString("channelName");
         NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName, NotificationManager.IMPORTANCE_NONE);
@@ -330,7 +330,8 @@ public class VoiceConnectionService extends ConnectionService {
     @RequiresApi(api = Build.VERSION_CODES.N)
     private void stopForegroundService() {
         Log.d(TAG, "[VoiceConnectionService] stopForegroundService");
-        if (settings == null || !settings.hasKey("foregroundService")) {
+        ConstraintsMap foregroundSettings = getForegroundSettings(getApplicationContext());
+        if (foregroundSettings == null) {
             Log.d(TAG, "[VoiceConnectionService] Discarding stop foreground service, no service configured");
             return;
         }
@@ -375,7 +376,11 @@ public class VoiceConnectionService extends ConnectionService {
     }
 
     private void initConnection(String uuid, VoiceConnection connection, Bundle extras, PhoneAccountHandle accountHandle) {
+        connection.setInitializing();
+        connection.setExtras(extras);
+
         int capabilities = connection.getConnectionCapabilities() | Connection.CAPABILITY_MUTE;
+        ConstraintsMap settings = getSettings(getApplicationContext());
         if (settings != null) {
             if (!settings.isNull("supportsHolding") && settings.getBoolean("supportsHolding")) {
                 capabilities |= Connection.CAPABILITY_SUPPORT_HOLD;
@@ -402,8 +407,6 @@ public class VoiceConnectionService extends ConnectionService {
             }
         }
 
-        connection.setInitializing();
-        connection.setExtras(extras);
         // Get other connections for conferencing
         List<Connection> conferenceConnections = new ArrayList<>(currentConnections.values());
         connection.setConferenceableConnections(conferenceConnections);

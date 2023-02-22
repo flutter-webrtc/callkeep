@@ -3,7 +3,8 @@ package io.wazo.callkeep.utils;
 public enum ObjectType {
     Null,
     Boolean,
-    Number,
+    Integer,
+    Double,
     String,
     Map,
     Array,

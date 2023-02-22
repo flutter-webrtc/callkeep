@@ -25,6 +25,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Icon;
@@ -41,6 +42,7 @@ import android.view.WindowManager;
 
 import androidx.annotation.ChecksSdkIntAtLeast;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
@@ -58,9 +60,13 @@ import io.flutter.plugin.common.MethodChannel.Result;
 import io.wazo.callkeep.utils.Callback;
 import io.wazo.callkeep.utils.ConstraintsMap;
 import io.wazo.callkeep.utils.ConstraintsArray;
+import io.wazo.callkeep.utils.MapUtils;
 import io.wazo.callkeep.utils.PermissionUtils;
 
 import static io.wazo.callkeep.CallKeepConstants.*;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 // @see https://github.com/kbagchiGWC/voice-quickstart-android/blob/9a2aff7fbe0d0a5ae9457b48e9ad408740dfb968/exampleConnectionService/src/main/java/com/twilio/voice/examples/connectionservice/VoiceConnectionServiceActivity.java
 public class CallKeepModule {
@@ -74,7 +80,7 @@ public class CallKeepModule {
     private static PhoneAccountHandle accountHandle;
     private boolean isReceiverRegistered = false;
     private VoiceBroadcastReceiver voiceBroadcastReceiver;
-    private ConstraintsMap settings;
+    private static ConstraintsMap settings;
     private final List<String> requiredPermissions = new LinkedList<>();
     private Activity currentActivity = null;
     private final MethodChannel eventChannel;
@@ -225,7 +231,7 @@ public class CallKeepModule {
             }
             break;
             case "foregroundService": {
-                VoiceConnectionService.setSettings(new ConstraintsMap(call.argument("settings")));
+                updateSettings(new ConstraintsMap(call.argument("settings")));
                 result.success(null);
             }
             break;
@@ -249,14 +255,29 @@ public class CallKeepModule {
             return;
         }
         VoiceConnectionService.setAvailable(false);
-        this.settings = options;
+        updateSettings(options);
         if (isConnectionServiceAvailable()) {
             this.registerPhoneAccount(this.getAppContext(), options);
             this.registerEvents();
             VoiceConnectionService.setAvailable(true);
         }
-        VoiceConnectionService.setSettings(options);
         setupRequiredPermissions(options);
+    }
+
+    public static ConstraintsMap getSettings(@Nullable Context context) {
+        if (settings == null) {
+            fetchStoredSettings(context);
+        }
+        return settings;
+    }
+
+    private void updateSettings(ConstraintsMap options) {
+        if (settings == null) {
+            settings = options;
+        } else {
+            settings.merge(options.toMap());
+        }
+        storeSettings(settings);
     }
 
     private void setupRequiredPermissions(ConstraintsMap options) {
@@ -763,6 +784,42 @@ public class CallKeepModule {
         };
 
         PermissionUtils.requestPermissions(activity, permissions, callback);
+    }
+
+    // Store all callkeep settings in JSON
+    private void storeSettings(ConstraintsMap options) {
+        Context context = getAppContext();
+        if (context == null) {
+            Log.w(TAG, "[CallKeepModule][storeSettings] no context found.");
+            return;
+        }
+        SharedPreferences sharedPref = context.getSharedPreferences("settings-callkeep", Context.MODE_PRIVATE);
+        try {
+            JSONObject jsonObject = MapUtils.convertMapToJson(options);
+            String jsonString = jsonObject.toString();
+            sharedPref.edit().putString("settings", jsonString).apply();
+        } catch (JSONException e) {
+            Log.w(TAG, "[CallKeepModule][storeSettings] exception: " + e);
+        }
+    }
+
+    private static void fetchStoredSettings(Context context) {
+        if (context == null) {
+            Log.w(TAG, "[CallKeepModule][fetchStoredSettings] no context found.");
+            return;
+        }
+        settings = new ConstraintsMap();
+
+        SharedPreferences sharedPref = context.getSharedPreferences("settings-callkeep", Context.MODE_PRIVATE);
+        try {
+            String jsonString = sharedPref.getString("settings", (new JSONObject()).toString());
+            if (jsonString != null) {
+                JSONObject jsonObject = new JSONObject(jsonString);
+                settings = MapUtils.convertJsonToMap(jsonObject);
+            }
+        } catch(JSONException e) {
+            Log.w(TAG, "[CallKeepModule][fetchStoredSettings] exception: " + e);
+        }
     }
 
     private class VoiceBroadcastReceiver extends BroadcastReceiver {
