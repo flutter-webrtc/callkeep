@@ -72,15 +72,16 @@ import org.json.JSONObject;
 public class CallKeepModule {
     private static final String E_ACTIVITY_DOES_NOT_EXIST = "E_ACTIVITY_DOES_NOT_EXIST";
     private static final String E_CONNECTION_SERVICE_NOT_AVAILABLE = "E_CONNECTION_SERVICE_NOT_AVAILABLE";
-
     private static final String TAG = "FLT:CallKeepModule";
+
     private static TelecomManager telecomManager;
     private static TelephonyManager telephonyManager;
-    private final Context context;
     private static PhoneAccountHandle accountHandle;
+    private static ConstraintsMap settings;
+    private static boolean hasSetup = false;
+    private final Context context;
     private boolean isReceiverRegistered = false;
     private VoiceBroadcastReceiver voiceBroadcastReceiver;
-    private static ConstraintsMap settings;
     private final List<String> requiredPermissions = new LinkedList<>();
     private Activity currentActivity = null;
     private final MethodChannel eventChannel;
@@ -113,7 +114,7 @@ public class CallKeepModule {
             }
             break;
             case "displayIncomingCall": {
-                displayIncomingCall(
+                displayIncomingCallImpl(
                         call.argument("uuid"),
                         call.argument("handle"),
                         call.argument("callerName"),
@@ -254,14 +255,24 @@ public class CallKeepModule {
         if (isReceiverRegistered) {
             return;
         }
-        VoiceConnectionService.setAvailable(false);
         updateSettings(options);
-        if (isConnectionServiceAvailable()) {
-            this.registerPhoneAccount(this.getAppContext(), options);
-            this.registerEvents();
-            VoiceConnectionService.setAvailable(true);
+        if (setupImpl(context, options)) {
+            registerEvents();
         }
         setupRequiredPermissions(options);
+    }
+
+    private static boolean setupImpl(Context context, ConstraintsMap options) {
+        boolean isServiceAvailable = isConnectionServiceAvailable();
+        if (hasSetup) return isServiceAvailable;
+        VoiceConnectionService.setAvailable(false);
+        if (isServiceAvailable) {
+            registerPhoneAccount(context, options);
+            VoiceConnectionService.setPhoneAccountHandle(accountHandle);
+            VoiceConnectionService.setAvailable(true);
+        }
+        hasSetup = true;
+        return isServiceAvailable;
     }
 
     public static ConstraintsMap getSettings(@Nullable Context context) {
@@ -292,21 +303,28 @@ public class CallKeepModule {
         }
     }
 
-
     private void registerEvents() {
         if (!isConnectionServiceAvailable()) {
             return;
         }
         voiceBroadcastReceiver = new VoiceBroadcastReceiver();
         registerReceiver();
-        VoiceConnectionService.setPhoneAccountHandle(accountHandle);
     }
 
+    public static void displayIncomingCall(Context context,
+                                           String uuid,
+                                           String handle,
+                                           String callerName,
+                                           Map<String, String> additionalData) {
+        if (setupImpl(context, getSettings(context))) {
+            displayIncomingCallImpl(uuid, handle, callerName, additionalData);
+        }
+    }
 
-    private void displayIncomingCall(String uuid,
-                                     String handle,
-                                     String callerName,
-                                     Map<String, String> additionalData) {
+    private static void displayIncomingCallImpl(String uuid,
+                                               String handle,
+                                               String callerName,
+                                               Map<String, String> additionalData) {
         Log.d(TAG, "Called displayIncomingCall");
         if (!isConnectionServiceAvailable() || !hasPhoneAccount()) {
             return;
@@ -363,7 +381,7 @@ public class CallKeepModule {
         telecomManager.placeCall(uri, extras);
     }
 
-    private String getHandleSchema()  {
+    private static String getHandleSchema()  {
         if (settings == null || settings.isNull("handleSchema")) {
             return PhoneAccount.SCHEME_TEL;
         } else {
@@ -371,7 +389,7 @@ public class CallKeepModule {
         }
     }
 
-    private Bundle createCallBundle(String uuid, String handle, String callerName, Map<String, String> additionalData) {
+    private static Bundle createCallBundle(String uuid, String handle, String callerName, Map<String, String> additionalData) {
         Bundle extras = new Bundle();
         extras.putString(EXTRA_CALL_UUID, uuid);
         extras.putString(EXTRA_CALLER_NAME, callerName);
@@ -549,7 +567,7 @@ public class CallKeepModule {
 
 
     private void hasPhoneAccount(@NonNull MethodChannel.Result result) {
-        this.ensureTelecomManagerInitialize();
+        ensureTelecomManagerInitialize(getAppContext());
         result.success(hasPhoneAccount());
     }
 
@@ -651,10 +669,9 @@ public class CallKeepModule {
         result.success(isOpened);
     }
 
-    private void registerPhoneAccount(Context appContext, ConstraintsMap options) {
-        this.ensureTelecomManagerInitialize();
-        String appName = this.getApplicationName(this.getAppContext());
-
+    private static void registerPhoneAccount(Context appContext, ConstraintsMap options) {
+        ensureTelecomManagerInitialize(appContext);
+        String appName = getApplicationName(appContext);
         PhoneAccount.Builder builder = new PhoneAccount.Builder(accountHandle, appName);
         int capabilities = 0;
         if (isSelfManaged(options)) {
@@ -676,11 +693,10 @@ public class CallKeepModule {
         Log.d(TAG, "Registered phone account " + account);
     }
 
-    private void ensureTelecomManagerInitialize() {
+    private static void ensureTelecomManagerInitialize(Context context) {
         if (telecomManager == null) {
-            Context context = this.getAppContext();
             ComponentName cName = new ComponentName(context, VoiceConnectionService.class);
-            String appName = this.getApplicationName(context);
+            String appName = getApplicationName(context);
             accountHandle = new PhoneAccountHandle(cName, appName);
             telecomManager = (TelecomManager) context.getSystemService(Context.TELECOM_SERVICE);
             telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
@@ -688,7 +704,7 @@ public class CallKeepModule {
     }
 
     @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.O)
-    private boolean isSelfManaged(ConstraintsMap options) {
+    private static boolean isSelfManaged(ConstraintsMap options) {
         return !options.isNull("isSelfManaged") &&
                 options.getBoolean("isSelfManaged") &&
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.O;
@@ -698,7 +714,7 @@ public class CallKeepModule {
         eventChannel.invokeMethod(eventName, params.toMap());
     }
 
-    private String getApplicationName(Context appContext) {
+    private static String getApplicationName(Context appContext) {
         ApplicationInfo applicationInfo = appContext.getApplicationInfo();
         int stringId = applicationInfo.labelRes;
 
@@ -717,7 +733,7 @@ public class CallKeepModule {
         return hasPermissions;
     }
 
-    private boolean hasPhoneAccount() {
+    private static boolean hasPhoneAccount() {
         if (telecomManager == null) return false;
         PhoneAccount phoneAccount = telecomManager.getPhoneAccount(accountHandle);
         if (phoneAccount == null) return false;
