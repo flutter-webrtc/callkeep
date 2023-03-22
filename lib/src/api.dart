@@ -251,7 +251,7 @@ class FlutterCallkeep extends EventManager {
     }
 
     final additionalPermissions = options['additionalPermissions'] ?? [];
-    final showAccountAlert = await checkPhoneAccountPermission(additionalPermissions.cast<String>() as List<String>);
+    final showAccountAlert = await _checkPhoneAccountPermission(additionalPermissions.cast<String>() as List<String>);
 
     return showAccountAlert;
   }
@@ -265,7 +265,9 @@ class FlutterCallkeep extends EventManager {
     await _channel.invokeMethod<void>('openPhoneAccounts', <String, dynamic>{});
   }
 
-  Future<bool> checkPhoneAccountPermission(List<String>? optionalPermissions) async {
+  Future<bool> checkPhoneAccountPermission() async => await _checkPhoneAccountPermission(null);
+
+  Future<bool> _checkPhoneAccountPermission(List<String>? optionalPermissions) async {
     if (!Platform.isAndroid) {
       return true;
     }
