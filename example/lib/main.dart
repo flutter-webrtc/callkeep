@@ -333,7 +333,7 @@ class _MyAppState extends State<HomePage> {
       //  _firebaseMessaging.requestNotificationPermissions();
 
       _firebaseMessaging.getToken().then((token) {
-        print('[FCM] token => ' + token);
+        print('[FCM] token => $token');
       });
 
       _firebaseMessaging.configure(
