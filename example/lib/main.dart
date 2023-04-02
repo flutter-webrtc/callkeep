@@ -33,7 +33,7 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
   var uuid = payload['uuid'] as String;
   var hasVideo = payload['has_video'] == "true";
 
-  final callUUID = uuid ?? Uuid().v4();
+  final callUUID = uuid ?? const Uuid().v4();
   _callKeep.on(CallKeepPerformAnswerCallAction(),
       (CallKeepPerformAnswerCallAction event) {
     print(
@@ -99,7 +99,7 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
 }
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -107,7 +107,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       title: 'Welcome to Flutter',
       debugShowCheckedModeBanner: false,
       home: HomePage(),
@@ -132,12 +132,12 @@ class Call {
 class MyAppState extends State<HomePage> {
   final FlutterCallkeep _callKeep = FlutterCallkeep();
   Map<String, Call> calls = {};
-  String newUUID() => Uuid().v4();
+  String newUUID() => const Uuid().v4();
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
 
   void iOSPermission() {
     _firebaseMessaging.requestNotificationPermissions(
-        IosNotificationSettings(sound: true, badge: true, alert: true));
+        const IosNotificationSettings(sound: true, badge: true, alert: true));
     _firebaseMessaging.onIosSettingsRegistered
         .listen((IosNotificationSettings settings) {
       print('Settings registered: $settings');
@@ -350,7 +350,7 @@ class MyAppState extends State<HomePage> {
             var callerName = payload['caller_name'] as String;
             var uuid = payload['uuid'] as String;
             var hasVideo = payload['has_video'] == "true";
-            final callUUID = uuid ?? Uuid().v4();
+            final callUUID = uuid ?? const Uuid().v4();
             setState(() {
               calls[callUUID] = Call(callerId);
             });
