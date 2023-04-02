@@ -376,25 +376,25 @@ class _MyAppState extends State<HomePage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
-                      RaisedButton(
+                      ElevatedButton(
                         onPressed: () async {
                           setOnHold(item.key, !item.value.held);
                         },
                         child: Text(item.value.held ? 'Unhold' : 'Hold'),
                       ),
-                      RaisedButton(
+                      ElevatedButton(
                         onPressed: () async {
                           updateDisplay(item.key);
                         },
                         child: const Text('Display'),
                       ),
-                      RaisedButton(
+                      ElevatedButton(
                         onPressed: () async {
                           setMutedCall(item.key, !item.value.muted);
                         },
                         child: Text(item.value.muted ? 'Unmute' : 'Mute'),
                       ),
-                      RaisedButton(
+                      ElevatedButton(
                         onPressed: () async {
                           hangup(item.key);
                         },
@@ -417,13 +417,13 @@ class _MyAppState extends State<HomePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              RaisedButton(
+              ElevatedButton(
                 onPressed: () async {
                   displayIncomingCall('10086');
                 },
                 child: const Text('Display incoming call now'),
               ),
-              RaisedButton(
+              ElevatedButton(
                 onPressed: () async {
                   displayIncomingCallDelayed('10086');
                 },
