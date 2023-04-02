@@ -115,7 +115,7 @@ class MyApp extends StatelessWidget {
 
 class HomePage extends StatefulWidget {
   @override
-  _MyAppState createState() => _MyAppState();
+  MyAppState createState() => MyAppState();
 }
 
 class Call {
@@ -125,7 +125,7 @@ class Call {
   bool muted = false;
 }
 
-class _MyAppState extends State<HomePage> {
+class MyAppState extends State<HomePage> {
   final FlutterCallkeep _callKeep = FlutterCallkeep();
   Map<String, Call> calls = {};
   String newUUID() => Uuid().v4();
