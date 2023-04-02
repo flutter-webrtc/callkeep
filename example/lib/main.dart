@@ -33,7 +33,7 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
   var uuid = payload['uuid'] as String;
   var hasVideo = payload['has_video'] == "true";
 
-  final callUUID = uuid ?? Uuid().v4();
+  final callUUID = uuid ?? const Uuid().v4();
   _callKeep.on(CallKeepPerformAnswerCallAction(),
       (CallKeepPerformAnswerCallAction event) {
     print(
@@ -99,13 +99,15 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
 }
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({Key key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       title: 'Welcome to Flutter',
       debugShowCheckedModeBanner: false,
       home: HomePage(),
@@ -114,8 +116,10 @@ class MyApp extends StatelessWidget {
 }
 
 class HomePage extends StatefulWidget {
+  const HomePage({Key key}) : super(key: key);
+
   @override
-  _MyAppState createState() => _MyAppState();
+  MyAppState createState() => MyAppState();
 }
 
 class Call {
@@ -125,15 +129,15 @@ class Call {
   bool muted = false;
 }
 
-class _MyAppState extends State<HomePage> {
+class MyAppState extends State<HomePage> {
   final FlutterCallkeep _callKeep = FlutterCallkeep();
   Map<String, Call> calls = {};
-  String newUUID() => Uuid().v4();
+  String newUUID() => const Uuid().v4();
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
 
-  void iOS_Permission() {
+  void iOSPermission() {
     _firebaseMessaging.requestNotificationPermissions(
-        IosNotificationSettings(sound: true, badge: true, alert: true));
+        const IosNotificationSettings(sound: true, badge: true, alert: true));
     _firebaseMessaging.onIosSettingsRegistered
         .listen((IosNotificationSettings settings) {
       print('Settings registered: $settings');
@@ -261,7 +265,7 @@ class _MyAppState extends State<HomePage> {
     });
     print('Display incoming call now');
     final bool hasPhoneAccount = await _callKeep.hasPhoneAccount();
-    if (!hasPhoneAccount) {
+    if (!hasPhoneAccount && context.mounted) {
       await _callKeep.hasDefaultPhoneAccount(context, <String, dynamic>{
         'alertTitle': 'Permissions required',
         'alertDescription':
@@ -333,7 +337,7 @@ class _MyAppState extends State<HomePage> {
       //  _firebaseMessaging.requestNotificationPermissions();
 
       _firebaseMessaging.getToken().then((token) {
-        print('[FCM] token => ' + token);
+        print('[FCM] token => $token');
       });
 
       _firebaseMessaging.configure(
@@ -346,7 +350,7 @@ class _MyAppState extends State<HomePage> {
             var callerName = payload['caller_name'] as String;
             var uuid = payload['uuid'] as String;
             var hasVideo = payload['has_video'] == "true";
-            final callUUID = uuid ?? Uuid().v4();
+            final callUUID = uuid ?? const Uuid().v4();
             setState(() {
               calls[callUUID] = Call(callerId);
             });
