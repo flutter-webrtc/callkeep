@@ -131,7 +131,7 @@ class _MyAppState extends State<HomePage> {
   String newUUID() => Uuid().v4();
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
 
-  void iOS_Permission() {
+  void iOSPermission() {
     _firebaseMessaging.requestNotificationPermissions(
         IosNotificationSettings(sound: true, badge: true, alert: true));
     _firebaseMessaging.onIosSettingsRegistered
