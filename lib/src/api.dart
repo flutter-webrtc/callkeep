@@ -180,8 +180,7 @@ class FlutterCallkeep extends EventManager {
     if (resp != null) {
       var uuids = <String>[];
       resp.forEach((element) {
-        if (element != null && element is String)
-        uuids.add(element);
+        if (element is String) uuids.add(element);
       });
       return uuids;
     }

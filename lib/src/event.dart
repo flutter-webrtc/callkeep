@@ -43,8 +43,6 @@ class EventManager {
   ///  -- do something here
   /// });
   void on<T extends EventType>(T eventType, void Function(T event) listener) {
-    assert(listener != null, 'Null listener');
-    assert(eventType != null, 'Null eventType');
     _addListener(eventType.runtimeType, listener);
   }
 
@@ -53,7 +51,6 @@ class EventManager {
   /// all the methods that call it enforce the types!!!!
   void _addListener(Type runtimeType, dynamic listener) {
     assert(listener != null, 'Null listener');
-    assert(runtimeType != null, 'Null runtimeType');
     try {
       var targets = listeners[runtimeType];
       if (targets == null) {
