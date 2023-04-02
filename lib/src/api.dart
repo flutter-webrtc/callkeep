@@ -1,17 +1,16 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/services.dart';
+
 import 'package:flutter/material.dart'
     show
         AlertDialog,
         BuildContext,
-        FlatButton,
         Navigator,
         Text,
         TextButton,
         Widget,
         showDialog;
-import 'package:flutter/services.dart' show MethodChannel;
+import 'package:flutter/services.dart' show MethodCall, MethodChannel;
 
 import 'actions.dart';
 import 'event.dart';
