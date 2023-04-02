@@ -265,7 +265,7 @@ class MyAppState extends State<HomePage> {
     });
     print('Display incoming call now');
     final bool hasPhoneAccount = await _callKeep.hasPhoneAccount();
-    if (!hasPhoneAccount) {
+    if (!hasPhoneAccount && context.mounted) {
       await _callKeep.hasDefaultPhoneAccount(context, <String, dynamic>{
         'alertTitle': 'Permissions required',
         'alertDescription':
