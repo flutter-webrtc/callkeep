@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/services.dart';
-import 'package:flutter/material.dart' show AlertDialog, BuildContext, FlatButton, Navigator, Text, TextButton, Widget, showDialog;
-import 'package:flutter/services.dart' show MethodChannel;
+
+import 'package:flutter/material.dart' show AlertDialog, BuildContext, Navigator, Text, TextButton, Widget, showDialog;
+import 'package:flutter/services.dart' show MethodCall, MethodChannel;
 
 import 'actions.dart';
 import 'event.dart';
@@ -138,7 +138,7 @@ class FlutterCallkeep extends EventManager {
     if (resp != null) {
       var uuids = <String>[];
       resp.forEach((element) {
-        if (element != null && element is String) uuids.add(element);
+        if (element is String) uuids.add(element);
       });
       return uuids;
     }
