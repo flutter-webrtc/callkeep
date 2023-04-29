@@ -109,11 +109,6 @@ public class VoiceConnection extends Connection {
         sendCallRequestToActivity(ACTION_DTMF_TONE, handle);
     }
 
-    public void setSpeakerEnable(boolean useSpeakerphone) {
-        int audioRoute = useSpeakerphone ? this.AUDIO_ROUTE_SPEAKER : this.AUDIO_ROUTE_EARPIECE;
-        setAudioRoute(audioRoute);
-    }
-
     @Override
     public void onDisconnect() {
         super.onDisconnect();
