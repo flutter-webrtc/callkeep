@@ -80,14 +80,6 @@ public class VoiceConnection extends Connection {
         sendCallRequestToActivity(isMuted ? ACTION_MUTE_CALL : ACTION_UNMUTE_CALL, handle);
     }
 
-    public void updateCallAudioState(CallAudioState state) {
-        try {
-            ((VoiceConnectionService) context).updateCallAudioState(state);
-        } catch(Throwable exception) {
-            Log.e(TAG, "Error changing state", exception);
-        }
-    }
-
     @Override
     public void onAnswer() {
         super.onAnswer();

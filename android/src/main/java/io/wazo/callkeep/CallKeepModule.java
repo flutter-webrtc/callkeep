@@ -489,7 +489,9 @@ public class CallKeepModule {
             newAudioState = new CallAudioState(conn.getCallAudioState().isMuted(), CallAudioState.ROUTE_EARPIECE,
                     conn.getCallAudioState().getSupportedRouteMask());
         }
-        conn.updateCallAudioState(newAudioState);
+
+        CallEndpoint newEndpoint = new CallEndpoint(conn.getAddress(), newAudioState);
+        conn.requestCallEndpointChange(newEndpoint, null, null);
     }
 
     

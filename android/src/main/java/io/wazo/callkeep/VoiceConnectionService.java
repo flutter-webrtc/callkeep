@@ -84,10 +84,6 @@ public class VoiceConnectionService extends ConnectionService {
         return new ArrayList<>(currentConnections.keySet());
     }
 
-    public void updateCallAudioState(CallAudioState newState) {
-        this.requestCallEndpointChange(newState);
-    }
-
     public VoiceConnectionService() {
         super();
         Log.e(TAG, "Constructor");
