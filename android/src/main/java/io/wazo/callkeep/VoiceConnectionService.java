@@ -368,12 +368,6 @@ public class VoiceConnectionService extends ConnectionService {
         connection2.onUnhold();
 
         this.addConference(voiceConference);
-
-        Intent inCallIntent = new Intent(
-            this.getApplicationContext(),
-            MyInCallService.class
-        );
-        this.getApplicationContext().startService(inCallIntent);
     }
 
     /*
