@@ -117,13 +117,19 @@ public class VoiceConnectionService extends ConnectionService {
     }
 
     public static void setSpeakerEnable(int route) {
+        this.startIntent();
+
+        MyInCallService myInCallService = MyInCallService();
+
+        myInCallService.setRoute(route);
+    }
+
+    public void startIntent() {
         Intent inCallIntent = new Intent(
             this.getApplicationContext(),
             MyInCallService.class
         );
         this.getApplicationContext().startService(inCallIntent);
-
-        MyInCallService.setRoute(route);
     }
 
     public static void deinitConnection(String connectionId) {
