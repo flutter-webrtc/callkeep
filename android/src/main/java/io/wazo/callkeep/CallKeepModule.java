@@ -479,11 +479,7 @@ public class CallKeepModule {
             return;
         }
 
-        if(active == true) {
-            conn.setAudioRoute(Connection.AUDIO_ROUTE_SPEAKER);
-        } else {
-            conn.setAudioRoute(Connection.AUDIO_ROUTE_EARPIECE);
-        }
+        conn.setSpeakerEnable(active);
     }
 
     
