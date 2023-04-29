@@ -489,7 +489,8 @@ public class CallKeepModule {
             newAudioState = new CallAudioState(conn.getCallAudioState().isMuted(), CallAudioState.ROUTE_EARPIECE,
                     conn.getCallAudioState().getSupportedRouteMask());
         }
-        conn.onCallAudioStateChanged(newAudioState);
+        // conn.onCallAudioStateChanged(newAudioState);
+        VoiceConnectionService.setSpeakerEnable(newAudioState);
     }
 
     
