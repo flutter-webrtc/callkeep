@@ -248,10 +248,10 @@ public class CallKeepModule {
         VoiceConnectionService.setSettings(options);
 
         Intent inCallIntent = new Intent(
-            this._context(),
+            this._context,
             MyInCallService.class
         );
-        this._context().startService(inCallIntent);    
+        this._context.startService(inCallIntent);    
     }
     
     public void registerPhoneAccount() {

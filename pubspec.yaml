@@ -1,6 +1,6 @@
 name: callkeep
 description: iOS CallKit framework and Android ConnectionService for Flutter.
-version: 0.3.3+24
+version: 0.3.3+25
 homepage: https://github.com/flutter-webrtc/callkeep
 
 environment:
