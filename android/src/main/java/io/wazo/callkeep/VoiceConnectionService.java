@@ -54,7 +54,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import io.wazo.callkeep.utils.ConstraintsMap;
-import io.wazo.callkeep.MyInCallService;
 import static io.wazo.callkeep.Constants.*;
 import static io.wazo.callkeep.Constants.FOREGROUND_SERVICE_TYPE_MICROPHONE;
 
@@ -118,7 +117,7 @@ public class VoiceConnectionService extends ConnectionService {
     }
 
     public static void setSpeakerEnable(int route) {
-        MyInCallService myInCallService = MyInCallService();
+        MyInCallService myInCallService = new MyInCallService();
 
         myInCallService.setRoute(route);
     }
