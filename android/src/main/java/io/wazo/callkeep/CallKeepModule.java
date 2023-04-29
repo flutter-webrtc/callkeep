@@ -475,7 +475,8 @@ public class CallKeepModule {
 
 
     public Boolean setSpeakerEnable(String uuid, Boolean active) {
-        Connection conn = VoiceConnectionService.getConnection(uuid);
+        Connection conn = telecomManager.getActiveCall();
+        // Connection conn = VoiceConnectionService.getConnection(uuid);
         if (conn == null) {
             return false;
         }
