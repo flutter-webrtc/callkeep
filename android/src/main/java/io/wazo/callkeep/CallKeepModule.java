@@ -164,7 +164,8 @@ public class CallKeepModule {
             }
             break;
             case "setSpeakerEnable": {
-                setSpeakerEnable((String)call.argument("uuid"), (Boolean)call.argument("enabled"));
+                boolean status = setSpeakerEnable((String)call.argument("uuid"), (Boolean)call.argument("enabled"));
+                result.success(status)
             }
             break;
             case "sendDTMF": {
@@ -473,10 +474,10 @@ public class CallKeepModule {
     }
 
 
-    public void setSpeakerEnable(String uuid, Boolean active) {
+    public Boolean setSpeakerEnable(String uuid, Boolean active) {
         Connection conn = VoiceConnectionService.getConnection(uuid);
         if (conn == null) {
-            return;
+            return false;
         }
 
         CallAudioState newAudioState = null;
@@ -488,7 +489,12 @@ public class CallKeepModule {
             newAudioState = new CallAudioState(conn.getCallAudioState().isMuted(), CallAudioState.ROUTE_EARPIECE,
                     conn.getCallAudioState().getSupportedRouteMask());
         }
+
+        Log.d(TAG, "setSpeakerEnable" + (newAudioState.getRoute()));
+
         conn.onCallAudioStateChanged(newAudioState);
+
+        return true;
     }
 
     
