@@ -494,7 +494,11 @@ public class CallKeepModule {
         // Log.d(TAG, "setSpeakerEnable" + (newAudioState.getRoute()));
 
         // conn.onCallAudioStateChanged(newAudioState);
-        MyInCallService.setAudioRoute(active?CallAudioState.ROUTE_SPEAKER:CallAudioState.ROUTE_EARPIECE);
+        Intent intent = new Intent(this, MyInCallService.class);
+
+        MyInCallService myInCallService = new MyInCallService(intent);
+        
+        myInCallService.setRoute(active?CallAudioState.ROUTE_SPEAKER:CallAudioState.ROUTE_EARPIECE);
     }
 
     
