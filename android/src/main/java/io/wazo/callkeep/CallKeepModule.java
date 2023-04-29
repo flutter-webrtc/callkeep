@@ -31,9 +31,7 @@ import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.telecom.CallAudioState;
-import android.telecom.CallEndpoint;
 import android.telecom.Connection;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -54,7 +52,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.lang.Object;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.BinaryMessenger;
@@ -493,8 +490,7 @@ public class CallKeepModule {
                     conn.getCallAudioState().getSupportedRouteMask());
         }
 
-        CallEndpoint newEndpoint = new CallEndpoint(conn.getAddress(), newAudioState);
-        conn.requestCallEndpointChange(newEndpoint, null, null);
+        conn.onCallAudioStateChanged(newAudioState);
     }
 
     
