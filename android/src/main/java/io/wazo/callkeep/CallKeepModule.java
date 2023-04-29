@@ -163,6 +163,10 @@ public class CallKeepModule {
                 result.success(null);
             }
             break;
+            case "setSpeakerEnable": {
+                setSpeakerEnable((String)call.argument("uuid"), (Boolean)call.argument("enabled"));
+            }
+            break;
             case "sendDTMF": {
                 sendDTMF((String)call.argument("uuid"), (String)call.argument("key"));
                 result.success(null);
@@ -466,6 +470,20 @@ public class CallKeepModule {
                     conn.getCallAudioState().getSupportedRouteMask());
         }
         conn.onCallAudioStateChanged(newAudioState);
+    }
+
+
+    public void setSpeakerEnable(String uuid, Boolean active) {
+        Connection conn = VoiceConnectionService.getConnection(uuid);
+        if (conn == null) {
+            return;
+        }
+
+        if(active == true) {
+            connection.setAudioRoute(Connection.AUDIO_ROUTE_SPEAKER);
+        } else {
+            connection.setAudioRoute(Connection.AUDIO_ROUTE_EARPIECE);
+        }
     }
 
     
