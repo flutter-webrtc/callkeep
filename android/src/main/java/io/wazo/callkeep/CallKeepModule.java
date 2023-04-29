@@ -318,11 +318,6 @@ public class CallKeepModule {
         extras.putParcelable(TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS, callExtras);
 
         telecomManager.placeCall(uri, extras);
-        Intent inCallIntent = new Intent(
-            this.getApplicationContext(),
-            MyInCallService.class
-        );
-        this.getApplicationContext().startService(inCallIntent);
     }
 
     

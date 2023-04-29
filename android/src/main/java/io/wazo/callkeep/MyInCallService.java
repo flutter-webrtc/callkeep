@@ -19,15 +19,6 @@ public class MyInCallService extends InCallService {
     public void onCallAdded(Call call) {
         super.onCallAdded(call);
         
-        // Get the Call object for the placed call
-        Call placedCall = getCallById(call.getDetails().getCallId());
-        
         Log.d("TESTING", "placedCall: placing ");
-        // Use the Call object as needed
-        if (placedCall != null) {
-            // Do something with the placedCall
-            Log.d("TESTING", "placedCall: ");
-
-        }
     }
 }
