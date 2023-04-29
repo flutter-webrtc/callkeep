@@ -174,10 +174,6 @@ class FlutterCallkeep extends EventManager {
   Future<void> setMutedCall(String uuid, bool shouldMute) async =>
       await _channel.invokeMethod<void>('setMutedCall', <String, dynamic>{'uuid': uuid, 'muted': shouldMute});
 
-  Future<void> setSpeakerEnable(String uuid, bool enabled) async => isIOS
-      ? throw Exception('CallKeep.setSpeakerEnable was called from unsupported OS')
-      : await _channel.invokeMethod<void>('setSpeakerEnable', <String, dynamic>{'uuid': uuid, 'enabled': enabled});
-
   Future<void> sendDTMF(String uuid, String key) async => await _channel.invokeMethod<void>('sendDTMF', <String, dynamic>{'uuid': uuid, 'key': key});
 
   Future<void> checkIfBusy() async => isIOS
