@@ -110,7 +110,7 @@ public class VoiceConnection extends Connection {
     }
 
     public void setSpeakerEnable(boolean useSpeakerphone) {
-        int audioRoute = useSpeakerphone ? Connection.AUDIO_ROUTE_SPEAKER : Connection.AUDIO_ROUTE_EARPIECE;
+        int audioRoute = useSpeakerphone ? AUDIO_ROUTE_SPEAKER : AUDIO_ROUTE_EARPIECE;
         setAudioRoute(audioRoute);
     }
 
