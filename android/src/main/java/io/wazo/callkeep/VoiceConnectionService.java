@@ -31,6 +31,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.telecom.CallAudioState;
 import android.telecom.Connection;
 import android.telecom.ConnectionRequest;
 import android.telecom.ConnectionService;
@@ -83,8 +84,8 @@ public class VoiceConnectionService extends ConnectionService {
         return new ArrayList<>(currentConnections.keySet());
     }
 
-    public static void updateCallAudioState(CallAudioState newState) {
-        connection.requestCallEndpointChange(newState);
+    public void updateCallAudioState(CallAudioState newState) {
+        this.requestCallEndpointChange(newState);
     }
 
     public VoiceConnectionService() {
