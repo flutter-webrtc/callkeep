@@ -164,7 +164,7 @@ public class CallKeepModule {
             }
             break;
             case "setSpeakerEnable": {
-                setSpeakerEnable((String)call.argument("uuid"), (Boolean)call.argument("enabled"));
+                setSpeakerEnable((Boolean)call.argument("enabled"));
                 result.success(null);
             }
             break;
@@ -474,31 +474,8 @@ public class CallKeepModule {
     }
 
 
-    public void setSpeakerEnable(String uuid, Boolean active) {
-        // Connection conn = telecomManager.getActiveCall();
-        // // Connection conn = VoiceConnectionService.getConnection(uuid);
-        // if (conn == null) {
-        //     return false;
-        // }
-
-        // CallAudioState newAudioState = null;
-        // //if the requester wants to speaker, do that. otherwise earpiece
-        // if (active) {
-        //     newAudioState = new CallAudioState(conn.getCallAudioState().isMuted(), CallAudioState.ROUTE_SPEAKER,
-        //             conn.getCallAudioState().getSupportedRouteMask());
-        // } else {
-        //     newAudioState = new CallAudioState(conn.getCallAudioState().isMuted(), CallAudioState.ROUTE_EARPIECE,
-        //             conn.getCallAudioState().getSupportedRouteMask());
-        // }
-
-        // Log.d(TAG, "setSpeakerEnable" + (newAudioState.getRoute()));
-
-        // conn.onCallAudioStateChanged(newAudioState);
-        Intent intent = new Intent(this, MyInCallService.class);
-
-        MyInCallService myInCallService = new MyInCallService(intent);
-        
-        myInCallService.setRoute(active?CallAudioState.ROUTE_SPEAKER:CallAudioState.ROUTE_EARPIECE);
+    public void setSpeakerEnable(Boolean active) {
+        VoiceConnectionService.setSpeakerEnable(active? CallAudioState.ROUTE_SPEAKER: CallAudioState.ROUTE_EARPIECE);
     }
 
     

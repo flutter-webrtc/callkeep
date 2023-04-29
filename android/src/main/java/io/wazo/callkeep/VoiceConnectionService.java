@@ -116,6 +116,16 @@ public class VoiceConnectionService extends ConnectionService {
         VoiceConnectionService.currentConnectionRequest = null;
     }
 
+    public static void setSpeakerEnable(int route) {
+        Intent intent = new Intent(
+            this.getApplicationContext(),
+            MyInCallService.class
+        );
+        MyInCallService myInCallService = MyInCallService(intent);
+
+        myInCallService.setRoute(route);
+    }
+
     public static void deinitConnection(String connectionId) {
         Log.d(TAG, "deinitConnection:" + connectionId);
         VoiceConnectionService.hasOutgoingCall = false;
