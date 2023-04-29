@@ -164,7 +164,7 @@ public class CallKeepModule {
             }
             break;
             case "setSpeakerEnable": {
-                setSpeakerEnable((Boolean)call.argument("enabled"));
+                setSpeakerEnable((String)call.argument("uuid"), (Boolean)call.argument("enabled"));
                 result.success(null);
             }
             break;
@@ -246,12 +246,6 @@ public class CallKeepModule {
         }
 
         VoiceConnectionService.setSettings(options);
-
-        Intent inCallIntent = new Intent(
-            this._context,
-            MyInCallService.class
-        );
-        this._context.startService(inCallIntent);    
     }
     
     public void registerPhoneAccount() {
@@ -480,8 +474,22 @@ public class CallKeepModule {
     }
 
 
-    public void setSpeakerEnable(Boolean active) {
-        VoiceConnectionService.setSpeakerEnable(active? CallAudioState.ROUTE_SPEAKER: CallAudioState.ROUTE_EARPIECE);
+    public void setSpeakerEnable(String uuid, boolean active) {
+        Connection conn = VoiceConnectionService.getConnection(uuid);
+        if (conn == null) {
+            return;
+        }
+
+        CallAudioState newAudioState = null;
+        //if the requester wants to mute, do that. otherwise unmute
+        if (active) {
+            newAudioState = new CallAudioState(conn.isMuted(), CallAudioState.ROUTE_SPEAKER,
+                    conn.getCallAudioState().getSupportedRouteMask());
+        } else {
+            newAudioState = new CallAudioState(conn.isMuted(), CallAudioState.ROUTE_EARPIECE,
+                    conn.getCallAudioState().getSupportedRouteMask());
+        }
+        conn.onCallAudioStateChanged(newAudioState);
     }
 
     
