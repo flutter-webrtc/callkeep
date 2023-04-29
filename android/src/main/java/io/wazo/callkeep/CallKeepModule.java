@@ -480,9 +480,9 @@ public class CallKeepModule {
         }
 
         if(active == true) {
-            connection.setAudioRoute(Connection.AUDIO_ROUTE_SPEAKER);
+            conn.setAudioRoute(Connection.AUDIO_ROUTE_SPEAKER);
         } else {
-            connection.setAudioRoute(Connection.AUDIO_ROUTE_EARPIECE);
+            conn.setAudioRoute(Connection.AUDIO_ROUTE_EARPIECE);
         }
     }
 
