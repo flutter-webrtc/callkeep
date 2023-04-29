@@ -40,7 +40,7 @@ import static io.wazo.callkeep.Constants.*;
 @TargetApi(Build.VERSION_CODES.M)
 public class VoiceConnection extends Connection {
     private boolean isMuted = false;
-    private int = CallAudioState.ROUTE_EARPIECE;
+    private int route = CallAudioState.ROUTE_EARPIECE;
     private HashMap<String, String> handle;
     private Context context;
     private static final String TAG = "RNCK:VoiceConnection";

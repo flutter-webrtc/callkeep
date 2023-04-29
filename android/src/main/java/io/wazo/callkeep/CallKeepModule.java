@@ -165,7 +165,7 @@ public class CallKeepModule {
             break;
             case "setSpeakerEnable": {
                 boolean status = setSpeakerEnable((String)call.argument("uuid"), (Boolean)call.argument("enabled"));
-                result.success(status)
+                result.success(status);
             }
             break;
             case "sendDTMF": {
