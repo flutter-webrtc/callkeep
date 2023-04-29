@@ -32,7 +32,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.telecom.CallAudioState;
-import android.telecom.ConnectionService;
+import android.telecom.CallEndpoint;
 import android.telecom.Connection;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -492,17 +492,7 @@ public class CallKeepModule {
         }
 
         CallEndpoint newEndpoint = new CallEndpoint(conn.getAddress(), newAudioState);
-        conn.requestCallEndpointChange(newEndpoint, null, new OutcomeReceiver<Void, CallEndpointException>() {
-            @Override
-            public void onResult(Void result) {
-                // Audio route change successful
-            }
-
-            @Override
-            public void onError(CallEndpointException error) {
-                // Audio route change failed
-            }
-        });
+        conn.requestCallEndpointChange(newEndpoint, null, null);
     }
 
     
