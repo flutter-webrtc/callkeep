@@ -164,8 +164,8 @@ public class CallKeepModule {
             }
             break;
             case "setSpeakerEnable": {
-                boolean status = setSpeakerEnable((String)call.argument("uuid"), (Boolean)call.argument("enabled"));
-                result.success(status);
+                setSpeakerEnable((String)call.argument("uuid"), (Boolean)call.argument("enabled"));
+                result.success(null);
             }
             break;
             case "sendDTMF": {
@@ -474,28 +474,27 @@ public class CallKeepModule {
     }
 
 
-    public Boolean setSpeakerEnable(String uuid, Boolean active) {
-        Connection conn = telecomManager.getActiveCall();
-        // Connection conn = VoiceConnectionService.getConnection(uuid);
-        if (conn == null) {
-            return false;
-        }
+    public void setSpeakerEnable(String uuid, Boolean active) {
+        // Connection conn = telecomManager.getActiveCall();
+        // // Connection conn = VoiceConnectionService.getConnection(uuid);
+        // if (conn == null) {
+        //     return false;
+        // }
 
-        CallAudioState newAudioState = null;
-        //if the requester wants to speaker, do that. otherwise earpiece
-        if (active) {
-            newAudioState = new CallAudioState(conn.getCallAudioState().isMuted(), CallAudioState.ROUTE_SPEAKER,
-                    conn.getCallAudioState().getSupportedRouteMask());
-        } else {
-            newAudioState = new CallAudioState(conn.getCallAudioState().isMuted(), CallAudioState.ROUTE_EARPIECE,
-                    conn.getCallAudioState().getSupportedRouteMask());
-        }
+        // CallAudioState newAudioState = null;
+        // //if the requester wants to speaker, do that. otherwise earpiece
+        // if (active) {
+        //     newAudioState = new CallAudioState(conn.getCallAudioState().isMuted(), CallAudioState.ROUTE_SPEAKER,
+        //             conn.getCallAudioState().getSupportedRouteMask());
+        // } else {
+        //     newAudioState = new CallAudioState(conn.getCallAudioState().isMuted(), CallAudioState.ROUTE_EARPIECE,
+        //             conn.getCallAudioState().getSupportedRouteMask());
+        // }
 
-        Log.d(TAG, "setSpeakerEnable" + (newAudioState.getRoute()));
+        // Log.d(TAG, "setSpeakerEnable" + (newAudioState.getRoute()));
 
-        conn.onCallAudioStateChanged(newAudioState);
-
-        return true;
+        // conn.onCallAudioStateChanged(newAudioState);
+        MyInCallService.setAudioRoute(active?CallAudioState.ROUTE_SPEAKER:CallAudioState.ROUTE_EARPIECE);
     }
 
     
