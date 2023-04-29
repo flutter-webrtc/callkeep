@@ -184,7 +184,7 @@ class FlutterCallkeep extends EventManager {
       ? await _channel.invokeMethod<void>('checkSpeaker', <String, dynamic>{})
       : throw Exception('CallKeep.checkSpeaker was called from unsupported OS');
 
-  Future<void> setAvailable(String state) async {
+  Future<void> setAvailable(bool state) async {
     if (isIOS) {
       return;
     }
