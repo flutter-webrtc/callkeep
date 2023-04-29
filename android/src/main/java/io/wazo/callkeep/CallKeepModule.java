@@ -482,10 +482,10 @@ public class CallKeepModule {
         CallAudioState newAudioState = null;
         //if the requester wants to speaker, do that. otherwise earpiece
         if (active) {
-            newAudioState = new CallAudioState(conn.getCallAudioState().isMuted(), conn.ROUTE_SPEAKER,
+            newAudioState = new CallAudioState(conn.getCallAudioState().isMuted(), CallAudioState.ROUTE_SPEAKER,
                     conn.getCallAudioState().getSupportedRouteMask());
         } else {
-            newAudioState = new CallAudioState(conn.getCallAudioState().isMuted(), conn.ROUTE_EARPIECE,
+            newAudioState = new CallAudioState(conn.getCallAudioState().isMuted(), CallAudioState.ROUTE_EARPIECE,
                     conn.getCallAudioState().getSupportedRouteMask());
         }
         conn.onCallAudioStateChanged(newAudioState);
