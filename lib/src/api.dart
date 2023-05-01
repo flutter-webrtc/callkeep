@@ -178,9 +178,15 @@ class FlutterCallkeep extends EventManager {
     if (isIOS) {
       throw Exception('CallKeep.setSpeakerEnable was called from unsupported OS');
     } else {
-      var resp = await _channel.invokeMethod<dynamic>('setSpeakerEnable', <String, dynamic>{'uuid': uuid, 'enabled': enabled});
+      await _channel.invokeMethod<dynamic>('setSpeakerEnable', <String, dynamic>{'uuid': uuid, 'enabled': enabled});
+    }
+  }
 
-      print('CallKeep.setSpeakerEnable: $resp');
+  Future<void> setAudioRouteToBluetooth(String uuid) async {
+    if (isIOS) {
+      throw Exception('CallKeep.setAudioRouteToBluetooth was called from unsupported OS');
+    } else {
+      await _channel.invokeMethod<dynamic>('setAudioRouteToBluetooth', <String, dynamic>{'uuid': uuid});
     }
   }
 

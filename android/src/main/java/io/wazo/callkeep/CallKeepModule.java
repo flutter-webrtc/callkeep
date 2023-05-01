@@ -168,6 +168,11 @@ public class CallKeepModule {
                 result.success(null);
             }
             break;
+            case "setAudioRouteToBluetooth": {
+                setAudioRouteToBluetooth((String)call.argument("uuid"));
+                result.success(null);
+            }
+            break;
             case "sendDTMF": {
                 sendDTMF((String)call.argument("uuid"), (String)call.argument("key"));
                 result.success(null);
@@ -480,17 +485,20 @@ public class CallKeepModule {
             return;
         }
 
-        CallAudioState newAudioState = null;
-        //if the requester wants to mute, do that. otherwise unmute
-        if (active) {
-            newAudioState = new CallAudioState(conn.getCallAudioState().isMuted(), CallAudioState.ROUTE_SPEAKER,
-                    conn.getCallAudioState().getSupportedRouteMask());
+        if(active == true) {
+            conn.setAudioRoute(CallAudioState.ROUTE_SPEAKER);
         } else {
-            newAudioState = new CallAudioState(conn.getCallAudioState().isMuted(), CallAudioState.ROUTE_EARPIECE,
-                    conn.getCallAudioState().getSupportedRouteMask());
+            conn.setAudioRoute(CallAudioState.ROUTE_EARPIECE);
+        }
+    }
+
+    public void setAudioRouteToBluetooth(String uuid) {
+        Connection conn = VoiceConnectionService.getConnection(uuid);
+        if (conn == null) {
+            return;
         }
 
-        conn.onCallAudioStateChanged(newAudioState);
+        conn.setAudioRoute(CallAudioState.ROUTE_BLUETOOTH);
     }
 
     
