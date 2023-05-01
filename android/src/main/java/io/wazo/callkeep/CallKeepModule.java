@@ -157,6 +157,11 @@ public class CallKeepModule {
                 rejectCall((String)call.argument("uuid"));
                 result.success(null);
             }
+            break;  
+            case "setCurrentAudioRoute": {
+                setCurrentAudioRoute((String)call.argument("uuid"), (int)call.argument("route"));
+                result.success(null);
+            }
             break;
             case "setMutedCall": {
                 setMutedCall((String)call.argument("uuid"), (Boolean)call.argument("muted"));
@@ -450,6 +455,26 @@ public class CallKeepModule {
     }
 
     
+    public void setCurrentAudioRoute(String uuid, int route) {
+        Connection conn = VoiceConnectionService.getConnection(uuid);
+        if (conn == null) {
+            return;
+        }
+
+        switch (route) {
+            case 1:
+                conn.setAudioRoute(CallAudioState.ROUTE_EARPIECE);
+                break;
+            case 2:
+                conn.setAudioRoute(CallAudioState.ROUTE_SPEAKER);
+                break;
+            case 3:
+                conn.setAudioRoute(CallAudioState.ROUTE_BLUETOOTH);
+                break;
+        }
+    }
+
+
     public void setMutedCall(String uuid, boolean shouldMute) {
         Connection conn = VoiceConnectionService.getConnection(uuid);
         if (conn == null) {

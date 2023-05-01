@@ -8,7 +8,7 @@ import 'actions.dart';
 import 'event.dart';
 
 bool get isIOS => Platform.isIOS;
-bool get supportConnectionService => !isIOS && int.parse(Platform.version) >= 23;
+bool get supportConnectionService => !isIOS && int.parse(Platform.version) >= 26;
 
 class FlutterCallkeep extends EventManager {
   factory FlutterCallkeep() {
@@ -170,6 +170,10 @@ class FlutterCallkeep extends EventManager {
     }
     return false;
   }
+
+  Future<void> setAudioRoute(String uuid, int route) async => isIOS
+      ? throw Exception('CallKeep.setAudioRoute was called from unsupported OS')
+      : await _channel.invokeMethod<void>('setCurrentAudioRoute', <String, dynamic>{'uuid': uuid, 'route': route});
 
   Future<void> setMutedCall(String uuid, bool shouldMute) async =>
       await _channel.invokeMethod<void>('setMutedCall', <String, dynamic>{'uuid': uuid, 'muted': shouldMute});
