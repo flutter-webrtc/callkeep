@@ -213,6 +213,10 @@ public class CallKeepModule {
                 backToForeground(result);
             }
             break;
+            case "backToSystemCall": {
+                backToSystemCall(result);
+            }
+            break;
             case "foregroundService": {
                 VoiceConnectionService.setSettings(new ConstraintsMap((Map<String, Object>)call.argument("settings")));
                 result.success(null);
@@ -625,6 +629,16 @@ public class CallKeepModule {
             }
         }
         result.success(isOpened);
+    }
+
+    private void backToSystemCall(@NonNull MethodChannel.Result result) {
+        if(telecomManager == null) {
+            result.success(false);
+            return;
+        }
+
+        telecomManager.showInCallScreen(false);
+        result.success(true);
     }
 
     private void initializeTelecomManager() {
