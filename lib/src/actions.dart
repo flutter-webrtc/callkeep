@@ -13,15 +13,13 @@ class CallKeepDidReceiveStartCallAction extends EventType {
 
 class CallKeepPerformAnswerCallAction extends EventType {
   CallKeepPerformAnswerCallAction();
-  CallKeepPerformAnswerCallAction.fromMap(Map<dynamic, dynamic> arguments)
-      : callUUID = arguments['callUUID'];
+  CallKeepPerformAnswerCallAction.fromMap(Map<dynamic, dynamic> arguments) : callUUID = arguments['callUUID'];
   String? callUUID;
 }
 
 class CallKeepPerformEndCallAction extends EventType {
   CallKeepPerformEndCallAction();
-  CallKeepPerformEndCallAction.fromMap(Map<dynamic, dynamic> arguments)
-      : callUUID = arguments['callUUID'];
+  CallKeepPerformEndCallAction.fromMap(Map<dynamic, dynamic> arguments) : callUUID = arguments['callUUID'];
   String? callUUID;
 }
 
@@ -91,7 +89,12 @@ class CallKeepDidLoadWithEvents extends EventType {
 
 class CallKeepPushKitToken extends EventType {
   CallKeepPushKitToken();
-  CallKeepPushKitToken.fromMap(Map<dynamic, dynamic> arguments)
-      : token = arguments['token'];
+  CallKeepPushKitToken.fromMap(Map<dynamic, dynamic> arguments) : token = arguments['token'];
   String? token;
+}
+
+class CallKeepDidReceiveVoipMessages extends EventType {
+  CallKeepDidReceiveVoipMessages();
+  CallKeepDidReceiveVoipMessages.fromMap(Map<dynamic, dynamic> arguments) : arguments = arguments.cast<String, dynamic>();
+  Map<String, dynamic>? arguments;
 }

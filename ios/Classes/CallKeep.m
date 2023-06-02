@@ -24,6 +24,7 @@ static NSString *const CallKeepProviderReset = @"CallKeepProviderReset";
 static NSString *const CallKeepCheckReachability = @"CallKeepCheckReachability";
 static NSString *const CallKeepDidLoadWithEvents = @"CallKeepDidLoadWithEvents";
 static NSString *const CallKeepPushKitToken = @"CallKeepPushKitToken";
+static NSString *const CallKeepDidReceiveVoipMessages = @"CallKeepDidReceiveVoipMessages";
 
 @implementation CallKeep
 {
@@ -237,7 +238,7 @@ static CXProvider* sharedProvider;
     }
     */
 
-    NSDictionary *dic = payload.dictionaryPayload;
+    NSDictionary *dic = payload.dictionaryPayload[@"aps"][@"alert"];
 
     if (dic[@"aps"] != nil) {
         NSLog(@"Do not use the 'alert' format for push type %@.", payload.type);
@@ -246,12 +247,13 @@ static CXProvider* sharedProvider;
         }
         return;
     }
+    [self sendEventWithNameWrapper:CallKeepDidReceiveVoipMessages body:dic];
 
-    NSString *uuid = dic[@"uuid"];
-    NSString *callerId = dic[@"caller_id"];
-    NSString *callerName = dic[@"caller_name"];
-    BOOL hasVideo = [dic[@"has_video"] boolValue];
-    NSString *callerIdType = dic[@"caller_id_type"];
+    NSString *uuid = dic[@"channelName"];
+    NSString *callerId = dic[@"callerNumber"];
+    NSString *callerName = dic[@"callerName"];
+    BOOL hasVideo = dic[@"type"] == @"rtc";
+    NSString *callerIdType = @"number";
    
 
     if( uuid == nil) {

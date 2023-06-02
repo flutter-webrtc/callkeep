@@ -379,6 +379,9 @@ class FlutterCallkeep extends EventManager {
       case 'CallKeepPushKitToken':
         emit(CallKeepPushKitToken.fromMap(data));
         break;
+      case 'CallKeepDidReceiveVoipMessages':
+        emit(CallKeepDidReceiveVoipMessages.fromMap(data));
+        break;
     }
   }
 }
