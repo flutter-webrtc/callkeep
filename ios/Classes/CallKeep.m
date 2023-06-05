@@ -252,7 +252,7 @@ static CXProvider* sharedProvider;
     NSString *uuid = dic[@"channelName"];
     NSString *callerId = dic[@"callerNumber"];
     NSString *callerName = dic[@"callerName"];
-    BOOL hasVideo = dic[@"type"] == @"rtc";
+    BOOL hasVideo = dic[@"callType"] == @"rtc";
     NSString *callerIdType = @"number";
    
 
