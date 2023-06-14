@@ -52,13 +52,13 @@ class EventManager {
   void _addListener(Type runtimeType, dynamic listener) {
     assert(listener != null, 'Null listener');
     try {
-      var targets = listeners[runtimeType];
-      if (targets == null) {
-        targets = <dynamic>[];
-        listeners[runtimeType] = targets;
-      }
-      targets.remove(listener);
-      targets.add(listener);
+      listeners[runtimeType] = [listener];
+      // var targets = listeners[runtimeType];
+      // if (targets == null) {
+      //   targets = <dynamic>[];
+      // }
+      // targets.remove(listener);
+      // targets.add(listener);
     } catch (e) {
       rethrow;
     }
@@ -74,8 +74,7 @@ class EventManager {
     });
   }
 
-  void remove<T extends EventType>(
-      T eventType, void Function(T event) listener) {
+  void remove<T extends EventType>(T eventType, void Function(T event) listener) {
     final targets = listeners[eventType.runtimeType];
     if (targets == null) {
       return;
