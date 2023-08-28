@@ -756,6 +756,9 @@ continueUserActivity:(NSUserActivity *)userActivity
             @"handle": handle,
             @"video": @(isVideoCall)
         };
+
+        NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+        [userDefaults setObject:userInfo forKey:@"continueUserActivity.info"];
         
         CallKeep *callKeep = [CallKeep allocWithZone: nil];
         [callKeep sendEventWithNameWrapper:CallKeepDidReceiveStartCallAction body:userInfo];
