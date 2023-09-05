@@ -1,5 +1,7 @@
+import 'package:flutter/cupertino.dart';
+
 abstract class EventType {
-  EventType();
+  const EventType();
   void sanityCheck() {}
 }
 
@@ -21,7 +23,7 @@ abstract class EventType {
 ///  -- do something here
 /// });
 class EventManager {
-  Map<Type, List<dynamic>> listeners = <Type, List<dynamic>>{};
+  Map<Type, List<Function>> listeners = <Type, List<Function>>{};
 
   /// returns true if there are any listeners associated with the EventType for this instance of EventManager
   bool hasListeners(EventType event) {
@@ -39,22 +41,21 @@ class EventManager {
   ///
   /// Thus:
   ///
-  /// on(EventCallState(),(EventCallState event){
+  /// on<EventCallState>((EventCallState event){
   ///  -- do something here
   /// });
-  void on<T extends EventType>(T eventType, void Function(T event) listener) {
-    _addListener(eventType.runtimeType, listener);
+  void on<T extends EventType>(ValueChanged<T> listener) {
+    _addListener(T, listener);
   }
 
   /// It isn't possible to have type constraints here on the listener,
   /// BUT very importantly this method is private and
   /// all the methods that call it enforce the types!!!!
-  void _addListener(Type runtimeType, dynamic listener) {
-    assert(listener != null, 'Null listener');
+  void _addListener<T>(Type runtimeType, Function listener) {
     try {
       var targets = listeners[runtimeType];
       if (targets == null) {
-        targets = <dynamic>[];
+        targets = <Function>[];
         listeners[runtimeType] = targets;
       }
       targets.remove(listener);
@@ -66,7 +67,7 @@ class EventManager {
 
   /// add all event handlers from an other instance of EventManager to this one.
   void addAllEventHandlers(EventManager other) {
-    other.listeners.forEach((Type runtimeType, List<dynamic> otherListeners) {
+    other.listeners.forEach((Type runtimeType, List<Function> otherListeners) {
       // ignore: avoid_function_literals_in_foreach_calls
       otherListeners.forEach((dynamic otherListener) {
         _addListener(runtimeType, otherListener);
@@ -74,8 +75,7 @@ class EventManager {
     });
   }
 
-  void remove<T extends EventType>(
-      T eventType, void Function(T event) listener) {
+  void remove<T extends EventType>(T eventType, ValueChanged<T> listener) {
     final targets = listeners[eventType.runtimeType];
     if (targets == null) {
       return;
@@ -94,9 +94,8 @@ class EventManager {
 
     if (targets != null) {
       // avoid concurrent modification
-      final copy = List<dynamic>.from(targets);
       // ignore: avoid_function_literals_in_foreach_calls
-      copy.forEach((dynamic target) {
+      targets.toList(growable: false).forEach((dynamic target) {
         try {
           //   logger.warn("invoking $event on $target");
           target(event);
