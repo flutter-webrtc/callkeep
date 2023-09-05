@@ -5,6 +5,7 @@ import 'package:flutter/material.dart'
     show
         AlertDialog,
         BuildContext,
+        FlatButton,
         Navigator,
         Text,
         TextButton,
