@@ -17,15 +17,29 @@
 
 package io.wazo.callkeep;
 
-import android.annotation.TargetApi;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_CHECK_REACHABILITY;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_FAILED_CALL;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_ONGOING_CALL;
+import static io.wazo.callkeep.CallKeepConstants.ACTION_WAKEUP_CALL;
+import static io.wazo.callkeep.CallKeepConstants.BROADCAST_RECEIVER_META_DATA_KEY;
+import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALLER_NAME;
+import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALL_ATTRIB;
+import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALL_NUMBER;
+import static io.wazo.callkeep.CallKeepConstants.EXTRA_CALL_UUID;
+import static io.wazo.callkeep.CallKeepConstants.FOREGROUND_SERVICE_TYPE_MICROPHONE;
+import static io.wazo.callkeep.CallKeepConstants.HOLD_SUPPORT_DATA_KEY;
+
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningTaskInfo;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ServiceInfo;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Build;
@@ -47,40 +61,54 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
 import io.wazo.callkeep.utils.ConstraintsMap;
-import static io.wazo.callkeep.Constants.*;
-import static io.wazo.callkeep.Constants.FOREGROUND_SERVICE_TYPE_MICROPHONE;
 
 // @see https://github.com/kbagchiGWC/voice-quickstart-android/blob/9a2aff7fbe0d0a5ae9457b48e9ad408740dfb968/exampleConnectionService/src/main/java/com/twilio/voice/examples/connectionservice/VoiceConnectionService.java
-@TargetApi(Build.VERSION_CODES.M)
 public class VoiceConnectionService extends ConnectionService {
     private static Boolean isAvailable;
     private static Boolean isInitialized;
     private static Boolean isReachable;
-    private static String notReachableCallUuid;
-    private static ConnectionRequest currentConnectionRequest;
     private static PhoneAccountHandle phoneAccountHandle = null;
-    private static String TAG = "RNCK:VoiceConnectionService";
-    public static Map<String, VoiceConnection> currentConnections = new HashMap<>();
+    private static final String TAG = "RNCK:VoiceConnectionService";
+    private static final Map<String, VoiceConnection> currentConnections = new HashMap<>();
     public static Boolean hasOutgoingCall = false;
     public static VoiceConnectionService currentConnectionService = null;
-    public static ConstraintsMap _settings = null;
 
-    public static Connection getConnection(String connectionId) {
+    public static VoiceConnection getConnection(String connectionId) {
         if (currentConnections.containsKey(connectionId)) {
             return currentConnections.get(connectionId);
         }
         return null;
     }
 
+    public static ConstraintsMap getSettings(@Nullable Context context) {
+        return CallKeepModule.getSettings(context);
+    }
+
+    public static ConstraintsMap getForegroundSettings(@Nullable Context context) {
+        ConstraintsMap settings = VoiceConnectionService.getSettings(context);
+        if (settings == null) {
+            return null;
+        }
+        return settings.getMap("foregroundService");
+    }
+
     public static List<String> getActiveConnections() {
         return new ArrayList<>(currentConnections.keySet());
+    }
+
+    public static void endAllCalls() {
+        Map<String, VoiceConnection> connectionMap = new HashMap<>(currentConnections);
+        for (Map.Entry<String, VoiceConnection> connectionEntry : connectionMap.entrySet()) {
+            Connection connectionToEnd = connectionEntry.getValue();
+            connectionToEnd.onDisconnect();
+        }
     }
 
     public VoiceConnectionService() {
@@ -89,8 +117,13 @@ public class VoiceConnectionService extends ConnectionService {
         isReachable = false;
         isInitialized = false;
         isAvailable = false;
-        currentConnectionRequest = null;
         currentConnectionService = this;
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        checkReachability();
     }
 
     public static void setPhoneAccountHandle(PhoneAccountHandle phoneAccountHandle) {
@@ -106,102 +139,140 @@ public class VoiceConnectionService extends ConnectionService {
         isAvailable = value;
     }
 
-    public static void setSettings(ConstraintsMap settings) {
-        _settings = settings;
-    }
 
-    public static void setReachable() {
+    public static void setReachable(Boolean value) {
         Log.d(TAG, "setReachable");
-        isReachable = true;
-        VoiceConnectionService.currentConnectionRequest = null;
+        isReachable = value;
     }
 
     public static void deinitConnection(String connectionId) {
         Log.d(TAG, "deinitConnection:" + connectionId);
         VoiceConnectionService.hasOutgoingCall = false;
 
-        currentConnectionService.stopForegroundService();
-
-        if (currentConnections.containsKey(connectionId)) {
-            currentConnections.remove(connectionId);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            currentConnectionService.stopForegroundService();
         }
+
+        currentConnections.remove(connectionId);
+    }
+
+    private ConstraintsMap getMetadataSettings() {
+        try {
+            Bundle metaData = getMetaData();
+            if (metaData != null) {
+                return new ConstraintsMap(bundleToMap(metaData));
+            }
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e(TAG, null, e);
+        }
+        return new ConstraintsMap();
     }
 
     @Override
-    public Connection onCreateIncomingConnection(PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
-        Bundle extra = request.getExtras();
-        Uri number = request.getAddress();
-        String name = extra.getString(EXTRA_CALLER_NAME);
-        Connection incomingCallConnection = createConnection(request);
-        incomingCallConnection.setRinging();
-        incomingCallConnection.setInitialized();
-
-        startForegroundService();
-
-        return incomingCallConnection;
-    }
-
-    @Override
-    public Connection onCreateOutgoingConnection(PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
-        VoiceConnectionService.hasOutgoingCall = true;
-        String uuid = UUID.randomUUID().toString();
-
-        if (!isInitialized && !isReachable) {
-            this.notReachableCallUuid = uuid;
-            this.currentConnectionRequest = request;
-            this.checkReachability();
-        }
-
-        return this.makeOutgoingCall(request, uuid, false);
-    }
-
-    private Connection makeOutgoingCall(ConnectionRequest request, String uuid, Boolean forceWakeUp) {
+    public void onCreateIncomingConnectionFailed(PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
+        super.onCreateIncomingConnectionFailed(connectionManagerPhoneAccount, request);
         Bundle extras = request.getExtras();
-        Connection outgoingCallConnection = null;
-        String number = request.getAddress().getSchemeSpecificPart();
+        assert extras != null;
+        extras = extras.getBundle(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS);
+        onConnectionFailed(request, Objects.requireNonNull(extras));
+    }
+
+    @Override
+    public void onCreateOutgoingConnectionFailed(PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
+        super.onCreateOutgoingConnectionFailed(connectionManagerPhoneAccount, request);
+        onConnectionFailed(request, request.getExtras());
+    }
+
+    private void onConnectionFailed(ConnectionRequest request, Bundle extras) {
+        String extrasUuid = extras.getString(EXTRA_CALL_UUID);
         String extrasNumber = extras.getString(EXTRA_CALL_NUMBER);
         String displayName = extras.getString(EXTRA_CALLER_NAME);
-        Boolean isForeground = VoiceConnectionService.isRunning(this.getApplicationContext());
+        Log.d(TAG, "onConnectionFailed: " + extrasUuid + ", number: " + extrasNumber + ", displayName:" + displayName);
+        HashMap<String, Object> connectionData = this.bundleToMap(extras);
+        sendCallRequestToActivity(ACTION_FAILED_CALL, connectionData);
+        Log.d(TAG, "onConnectionFailed: calling");
+    }
 
-        Log.d(TAG, "makeOutgoingCall:" + uuid + ", number: " + number + ", displayName:" + displayName);
+    @Override
+    public Connection onCreateIncomingConnection(PhoneAccountHandle phoneAccount, ConnectionRequest request) {
+        return makeIncomingCall(request);
+    }
 
-        // Wakeup application if needed
-        if (!isForeground || forceWakeUp) {
-            Log.d(TAG, "onCreateOutgoingConnection: Waking up application");
-            this.wakeUpApplication(uuid, number, displayName);
-        } else if (!this.canMakeOutgoingCall() && isReachable) {
-            Log.d(TAG, "onCreateOutgoingConnection: not available");
+    private Connection makeIncomingCall(ConnectionRequest request) {
+        Bundle extras = request.getExtras();
+        assert extras != null;
+        extras = extras.getBundle(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS);
+        Connection connection = makeOngoingCall(request, Objects.requireNonNull(extras));
+        connection.setRinging();
+        return connection;
+    }
+
+    @Override
+    public Connection onCreateOutgoingConnection(PhoneAccountHandle phoneAccount, ConnectionRequest request) {
+        VoiceConnectionService.hasOutgoingCall = true;
+
+        if (!isInitialized && !isReachable) {
+            this.checkReachability(request);
+        }
+
+        return makeOutgoingCall(request);
+    }
+
+    private Connection makeOutgoingCall(ConnectionRequest request) {
+        fixMissingNumber(request.getAddress(), request.getExtras());
+        fixMissingCallId(request.getExtras());
+        if (!wakeAndCheckAvailability(request.getExtras(), false)) {
             return Connection.createFailedConnection(new DisconnectCause(DisconnectCause.LOCAL));
+        } else {
+            VoiceConnection connection = makeOngoingCall(request, request.getExtras());
+            connection.setDialing();
+            connection.initCall();
+            return connection;
         }
+    }
 
+    private VoiceConnection makeOngoingCall(ConnectionRequest request, Bundle extras) {
+        String extrasUuid = extras.getString(EXTRA_CALL_UUID);
+        String extrasNumber = extras.getString(EXTRA_CALL_NUMBER);
+        String displayName = extras.getString(EXTRA_CALLER_NAME);
+        Log.d(TAG, "makeOngoingCall: " + extrasUuid + ", number: " + extrasNumber + ", displayName:" + displayName);
         // TODO: Hold all other calls
-        if (extrasNumber == null || !extrasNumber.equals(number)) {
-            extras.putString(EXTRA_CALL_UUID, uuid);
-            extras.putString(EXTRA_CALLER_NAME, displayName);
-            extras.putString(EXTRA_CALL_NUMBER, number);
-        }
-
-        outgoingCallConnection = createConnection(request);
-        outgoingCallConnection.setDialing();
-        outgoingCallConnection.setAudioModeIsVoip(true);
-        outgoingCallConnection.setCallerDisplayName(displayName, TelecomManager.PRESENTATION_ALLOWED);
-
+        HashMap<String, Object> connectionData = this.bundleToMap(extras);
+        VoiceConnection connection = new VoiceConnection(this, connectionData);
+        initConnection(extrasUuid, connection, extras, request.getAccountHandle());
         startForegroundService();
+        sendCallRequestToActivity(ACTION_ONGOING_CALL, connectionData);
+        Log.d(TAG, "makeOngoingCall: calling");
+        return connection;
+    }
 
-        // ‍️Weirdly on some Samsung phones (A50, S9...) using `setInitialized` will not display the native UI ...
-        // when making a call from the native Phone application. The call will still be displayed correctly without it.
-        if (!Build.MANUFACTURER.equalsIgnoreCase("Samsung")) {
-            outgoingCallConnection.setInitialized();
+    private void fixMissingNumber(Uri address, Bundle callExtras) {
+        String number = address.getSchemeSpecificPart();
+        String extrasNumber = callExtras.getString(EXTRA_CALL_NUMBER);
+        if (extrasNumber == null || !extrasNumber.equals(number)) {
+            callExtras.putString(EXTRA_CALL_NUMBER, number);
         }
+    }
 
-        HashMap<String, String> extrasMap = this.bundleToMap(extras);
+    private void fixMissingCallId(Bundle callExtras) {
+        String extrasUUID = callExtras.getString(EXTRA_CALL_UUID);
+        if (extrasUUID == null) {
+            callExtras.putString(EXTRA_CALL_UUID, UUID.randomUUID().toString());
+        }
+    }
 
-        sendCallRequestToActivity(ACTION_ONGOING_CALL, extrasMap);
-        sendCallRequestToActivity(ACTION_AUDIO_SESSION, extrasMap);
-
-        Log.d(TAG, "onCreateOutgoingConnection: calling");
-
-        return outgoingCallConnection;
+    private boolean wakeAndCheckAvailability(Bundle callExtras, Boolean forceWakeUp) {
+        boolean isRunning = VoiceConnectionService.isRunning(this.getApplicationContext());
+        // Wakeup application if needed
+        if (!isRunning || forceWakeUp) {
+            Log.d(TAG, "makeOngoingCall: Waking up application");
+            this.wakeUpApplication(callExtras);
+        }
+        if (this.canMakeOutgoingCall() && isReachable) {
+            return true;
+        }
+        Log.d(TAG, "makeOngoingCall: not available");
+        return false;
     }
 
     private void startForegroundService() {
@@ -210,11 +281,11 @@ public class VoiceConnectionService extends ConnectionService {
             return;
         }
         Log.d(TAG, "[VoiceConnectionService] startForegroundService");
-        if (_settings == null || !_settings.hasKey("foregroundService")) {
+        ConstraintsMap foregroundSettings = getForegroundSettings(getApplicationContext());
+        if (foregroundSettings == null) {
             Log.w(TAG, "[VoiceConnectionService] Not creating foregroundService because not configured");
             return;
         }
-        ConstraintsMap foregroundSettings = _settings.getMap("foregroundService");
         String NOTIFICATION_CHANNEL_ID = foregroundSettings.getString("channelId");
         String channelName = foregroundSettings.getString("channelName");
         NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName, NotificationManager.IMPORTANCE_NONE);
@@ -228,7 +299,7 @@ public class VoiceConnectionService extends ConnectionService {
                 .setContentTitle(foregroundSettings.getString("notificationTitle"))
                 .setPriority(NotificationManager.IMPORTANCE_MIN)
                 .setCategory(Notification.CATEGORY_SERVICE);
-        
+
         if (foregroundSettings.hasKey("notificationIcon")) {
             Context context = this.getApplicationContext();
             Resources res = context.getResources();
@@ -249,103 +320,104 @@ public class VoiceConnectionService extends ConnectionService {
         Log.d(TAG, "[VoiceConnectionService] Starting foreground service");
 
         Notification notification = notificationBuilder.build();
-        startForeground(FOREGROUND_SERVICE_TYPE_MICROPHONE, notification);
+        int notificationId = FOREGROUND_SERVICE_TYPE_MICROPHONE;
+        if (!foregroundSettings.isNull("notificationId")) {
+            notificationId = foregroundSettings.getInt("notificationId");
+        }
+        startForeground(notificationId, notification);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     private void stopForegroundService() {
         Log.d(TAG, "[VoiceConnectionService] stopForegroundService");
-        if (_settings == null || !_settings.hasKey("foregroundService")) {
+        ConstraintsMap foregroundSettings = getForegroundSettings(getApplicationContext());
+        if (foregroundSettings == null) {
             Log.d(TAG, "[VoiceConnectionService] Discarding stop foreground service, no service configured");
             return;
         }
-        stopForeground(FOREGROUND_SERVICE_TYPE_MICROPHONE);
+        stopForeground(Service.STOP_FOREGROUND_REMOVE);
     }
 
-    private void wakeUpApplication(String uuid, String number, String displayName) {
+    private void wakeUpApplication(Bundle extras) {
         Intent headlessIntent = new Intent(
-            this.getApplicationContext(),
-            CallKeepBackgroundMessagingService.class
+                this.getApplicationContext(),
+                CallKeepBackgroundMessagingService.class
         );
-        headlessIntent.putExtra("callUUID", uuid);
-        headlessIntent.putExtra("name", displayName);
-        headlessIntent.putExtra("handle", number);
-        Log.d(TAG, "wakeUpApplication: " + uuid + ", number : " + number + ", displayName:" + displayName);
-
+        headlessIntent.putExtras(new Bundle(extras));
+        Log.d(TAG, "wakeUpApplication: " +
+                extras.get(EXTRA_CALL_UUID) +
+                ", number : " + extras.get(EXTRA_CALL_NUMBER) +
+                ", displayName:" + extras.get(EXTRA_CALLER_NAME));
         ComponentName name = this.getApplicationContext().startService(headlessIntent);
         if (name != null) {
             CallKeepBackgroundMessagingService.acquireWakeLockNow(this.getApplicationContext());
         }
+        broadcastAction(ACTION_WAKEUP_CALL, bundleToMap(extras));
     }
 
-    private void wakeUpAfterReachabilityTimeout(ConnectionRequest request) {
-        if (this.currentConnectionRequest == null) {
-            return;
-        }
-        Log.d(TAG, "checkReachability timeout, force wakeup");
-        Bundle extras = request.getExtras();
-        String number = request.getAddress().getSchemeSpecificPart();
-        String displayName = extras.getString(EXTRA_CALLER_NAME);
-        wakeUpApplication(this.notReachableCallUuid, number, displayName);
-
-        VoiceConnectionService.currentConnectionRequest = null;
+    private void checkReachability(ConnectionRequest request) {
+        Log.d(TAG, "checkReachability");
+        checkReachability();
+        new Handler().postDelayed(
+                () -> {
+                    Log.d(TAG, "checkReachability timeout, force wakeup");
+                    wakeUpApplication(request.getExtras());
+                },
+                2000);
     }
 
     private void checkReachability() {
-        Log.d(TAG, "checkReachability");
-
-        final VoiceConnectionService instance = this;
         sendCallRequestToActivity(ACTION_CHECK_REACHABILITY, null);
-
-        new android.os.Handler().postDelayed(
-            new Runnable() {
-                public void run() {
-                    instance.wakeUpAfterReachabilityTimeout(instance.currentConnectionRequest);
-                }
-            }, 2000);
+        broadcastAction(ACTION_CHECK_REACHABILITY, null);
     }
 
     private Boolean canMakeOutgoingCall() {
         return isAvailable;
     }
 
-    private Connection createConnection(ConnectionRequest request) {
-        Bundle extras = request.getExtras();
-        HashMap<String, String> extrasMap = this.bundleToMap(extras);
-        extrasMap.put(EXTRA_CALL_NUMBER, request.getAddress().toString());
-        VoiceConnection connection = new VoiceConnection(this, extrasMap);
-        connection.setConnectionCapabilities(Connection.CAPABILITY_MUTE | Connection.CAPABILITY_SUPPORT_HOLD);
+    private void initConnection(String uuid, VoiceConnection connection, Bundle extras, PhoneAccountHandle accountHandle) {
+        connection.setInitializing();
+        connection.setExtras(extras);
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        int capabilities = connection.getConnectionCapabilities() | Connection.CAPABILITY_MUTE;
+        ConstraintsMap settings = getSettings(getApplicationContext());
+        if (settings != null) {
+            if (!settings.isNull("supportsHolding") && settings.getBoolean("supportsHolding")) {
+                capabilities |= Connection.CAPABILITY_SUPPORT_HOLD;
+            }
+        } else {
+            ConstraintsMap metDataSettings = getMetadataSettings();
+            if (Boolean.TRUE.equals(metDataSettings.getBoolean(HOLD_SUPPORT_DATA_KEY))) {
+                capabilities |= Connection.CAPABILITY_SUPPORT_HOLD;
+            }
+        }
+        connection.setConnectionCapabilities(capabilities);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Context context = getApplicationContext();
-            TelecomManager telecomManager = (TelecomManager) context.getSystemService(context.TELECOM_SERVICE);
-            PhoneAccount phoneAccount = telecomManager.getPhoneAccount(request.getAccountHandle());
+            TelecomManager telecomManager = (TelecomManager) context.getSystemService(Context.TELECOM_SERVICE);
+            PhoneAccount phoneAccount = telecomManager.getPhoneAccount(accountHandle);
 
             //If the phone account is self managed, then this connection must also be self managed.
-            if((phoneAccount.getCapabilities() & PhoneAccount.CAPABILITY_SELF_MANAGED) == PhoneAccount.CAPABILITY_SELF_MANAGED) {
+            if ((phoneAccount.getCapabilities() & PhoneAccount.CAPABILITY_SELF_MANAGED) == PhoneAccount.CAPABILITY_SELF_MANAGED) {
                 Log.d(TAG, "[VoiceConnectionService] PhoneAccount is SELF_MANAGED, so connection will be too");
                 connection.setConnectionProperties(Connection.PROPERTY_SELF_MANAGED);
-            }
-            else {
+            } else {
                 Log.d(TAG, "[VoiceConnectionService] PhoneAccount is not SELF_MANAGED, so connection won't be either");
             }
         }
 
-        connection.setInitializing();
-        connection.setExtras(extras);
-        currentConnections.put(extras.getString(EXTRA_CALL_UUID), connection);
-
         // Get other connections for conferencing
-        Map<String, VoiceConnection> otherConnections = new HashMap<>();
-        for (Map.Entry<String, VoiceConnection> entry : currentConnections.entrySet()) {
-            if(!(extras.getString(EXTRA_CALL_UUID).equals(entry.getKey()))) {
-                otherConnections.put(entry.getKey(), entry.getValue());
-            }
-        }
-        List<Connection> conferenceConnections = new ArrayList<Connection>(otherConnections.values());
+        List<Connection> conferenceConnections = new ArrayList<>(currentConnections.values());
         connection.setConferenceableConnections(conferenceConnections);
 
-        return connection;
+        currentConnections.put(uuid, connection);
+
+        // ‍️Weirdly on some Samsung phones (A50, S9...) using `setInitialized` will not display the native UI ...
+        // when making a call from the native Phone application. The call will still be displayed correctly without it.
+        if (!Build.MANUFACTURER.equalsIgnoreCase("Samsung")) {
+            connection.setInitialized();
+        }
     }
 
     @Override
@@ -367,33 +439,50 @@ public class VoiceConnectionService extends ConnectionService {
     /*
      * Send call request to the RNCallKeepModule
      */
-    private void sendCallRequestToActivity(final String action, @Nullable final HashMap attributeMap) {
-        final VoiceConnectionService instance = this;
-        final Handler handler = new Handler();
-
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                Intent intent = new Intent(action);
-                if (attributeMap != null) {
-                    Bundle extras = new Bundle();
-                    extras.putSerializable("attributeMap", attributeMap);
-                    intent.putExtras(extras);
-                }
-                LocalBroadcastManager.getInstance(instance).sendBroadcast(intent);
+    private void broadcastAction(final String action, @Nullable final HashMap<?, ?> attributeMap) {
+        try {
+            Bundle appMetaData = getMetaData();
+            if (appMetaData == null) return;
+            String receiverName = appMetaData.getString(BROADCAST_RECEIVER_META_DATA_KEY);
+            if (receiverName == null) return;
+            Class<?> clazz = Class.forName(receiverName);
+            Intent intent = new Intent(getApplicationContext(), clazz);
+            intent.setAction(getPackageName() + "." + action);
+            if (attributeMap != null) {
+                intent.putExtra(EXTRA_CALL_ATTRIB, attributeMap);
             }
+            sendBroadcast(intent);
+        } catch (ClassNotFoundException | PackageManager.NameNotFoundException e) {
+            Log.e(TAG, null, e);
+        }
+    }
+
+    private void sendCallRequestToActivity(final String action, @Nullable final HashMap attributeMap) {
+        new Handler().post(() -> {
+            Intent intent = new Intent(action);
+            if (attributeMap != null) {
+                intent.putExtra(EXTRA_CALL_ATTRIB, attributeMap);
+            }
+            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
         });
     }
 
-    private HashMap<String, String> bundleToMap(Bundle extras) {
-        HashMap<String, String> extrasMap = new HashMap<>();
-        Set<String> keySet = extras.keySet();
-        Iterator<String> iterator = keySet.iterator();
+    @Nullable
+    protected Bundle getMetaData() throws PackageManager.NameNotFoundException {
+        ServiceInfo serviceInfo = getPackageManager().getServiceInfo(new ComponentName(this, getClass()), PackageManager.GET_META_DATA);
+        return serviceInfo.metaData;
+    }
 
-        while(iterator.hasNext()) {
-            String key = iterator.next();
+    private HashMap<String, Object> bundleToMap(Bundle extras) {
+        HashMap<String, Object> extrasMap = new HashMap<>();
+        Set<String> keySet = extras.keySet();
+
+        for (String key : keySet) {
             if (extras.get(key) != null) {
-                extrasMap.put(key, extras.get(key).toString());
+                Object value = extras.get(key);
+                if (value != null) {
+                    extrasMap.put(key, value);
+                }
             }
         }
         return extrasMap;

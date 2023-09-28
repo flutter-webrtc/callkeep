@@ -48,7 +48,9 @@ public class CallKeepBackgroundMessagingService extends Service {
   @Nullable
   @Override
   public IBinder onBind(Intent intent) {
-    Log.d(TAG, "wakeUpApplication: " + intent.getStringExtra("callUUID") + ", number : " + intent.getStringExtra("handle") + ", displayName:" + intent.getStringExtra("name"));
+    Log.d(TAG, "wakeUpApplication: " + intent.getStringExtra(CallKeepConstants.EXTRA_CALL_UUID) +
+            ", number : " + intent.getStringExtra(CallKeepConstants.EXTRA_CALL_NUMBER) +
+            ", displayName:" + intent.getStringExtra(CallKeepConstants.EXTRA_CALLER_NAME));
     //TODO: not implemented
     return null;
   }
