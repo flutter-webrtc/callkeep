@@ -52,18 +52,18 @@ class EventManager {
   /// BUT very importantly this method is private and
   /// all the methods that call it enforce the types!!!!
   void _addListener<T>(Type runtimeType, Function listener) {
-    // listeners[runtimeType] = [listener];
-    try {
-      var targets = listeners[runtimeType];
-      if (targets == null) {
-        targets = <Function>[];
-        listeners[runtimeType] = targets;
-      }
-      targets.remove(listener);
-      targets.add(listener);
-    } catch (e) {
-      rethrow;
-    }
+    listeners[runtimeType] = [listener];
+    // try {
+    //   var targets = listeners[runtimeType];
+    //   if (targets == null) {
+    //     targets = <Function>[];
+    //     listeners[runtimeType] = targets;
+    //   }
+    //   targets.remove(listener);
+    //   targets.add(listener);
+    // } catch (e) {
+    //   rethrow;
+    // }
   }
 
   /// add all event handlers from an other instance of EventManager to this one.

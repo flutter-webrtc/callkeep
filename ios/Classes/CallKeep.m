@@ -806,7 +806,7 @@ continueUserActivity:(NSUserActivity *)userActivity
         NSDictionary *userInfo = @{
             @"handle": handle,
             @"name": displayName,
-            @"video": @(isVideoCall)
+            @"hasVideo": @(isVideoCall)
         };
 
         NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
