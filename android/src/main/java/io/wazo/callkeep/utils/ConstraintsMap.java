@@ -59,8 +59,10 @@ public class ConstraintsMap {
         Object value = mMap.get(name);
         if (value == null) {
             return ObjectType.Null;
-        } else if (value instanceof Number) {
-            return ObjectType.Number;
+        } else if (value instanceof Integer) {
+            return ObjectType.Integer;
+        } else if (value instanceof Double) {
+            return ObjectType.Double;
         } else if (value instanceof String) {
             return ObjectType.String;
         } else if (value instanceof Boolean) {

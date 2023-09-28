@@ -11,6 +11,25 @@
 #import <CallKit/CallKit.h>
 #import <Intents/Intents.h>
 #import <PushKit/PushKit.h>
+#import "CallKeepPushDelegate.h"
+
+static NSString *_Nonnull const CallKeepHandleStartCallNotification = @"CallKeepHandleStartCallNotification";
+static NSString *_Nonnull const CallKeepDidReceiveStartCallAction = @"CallKeepDidReceiveStartCallAction";
+static NSString *_Nonnull const CallKeepPerformAnswerCallAction = @"CallKeepPerformAnswerCallAction";
+static NSString *_Nonnull const CallKeepPerformEndCallAction = @"CallKeepPerformEndCallAction";
+static NSString *_Nonnull const CallKeepDidActivateAudioSession = @"CallKeepDidActivateAudioSession";
+static NSString *_Nonnull const CallKeepDidDeactivateAudioSession = @"CallKeepDidDeactivateAudioSession";
+static NSString *_Nonnull const CallKeepDidDisplayIncomingCall = @"CallKeepDidDisplayIncomingCall";
+static NSString *_Nonnull const CallKeepDidFailCallAction = @"CallKeepDidFailCallAction";
+static NSString *_Nonnull const CallKeepDidPerformSetMutedCallAction = @"CallKeepDidPerformSetMutedCallAction";
+static NSString *_Nonnull const CallKeepPerformPlayDTMFCallAction = @"CallKeepDidPerformDTMFAction";
+static NSString *_Nonnull const CallKeepDidToggleHoldAction = @"CallKeepDidToggleHoldAction";
+static NSString *_Nonnull const CallKeepProviderReset = @"CallKeepProviderReset";
+static NSString *_Nonnull const CallKeepCheckReachability = @"CallKeepCheckReachability";
+static NSString *_Nonnull const CallKeepDidLoadWithEvents = @"CallKeepDidLoadWithEvents";
+static NSString *_Nonnull const CallKeepPushKitToken = @"CallKeepPushKitToken";
+static NSString *_Nonnull const CallKeepActionAnswer = @"CallKeepActionAnswer";
+static NSString *_Nonnull const CallKeepActionEnd = @"CallKeepActionEnd";
 
 @interface CallKeep: NSObject<CXProviderDelegate, PKPushRegistryDelegate>
 @property (nonatomic, strong, nullable) CXCallController *callKeepCallController;
@@ -25,13 +44,15 @@
 
 + (BOOL)application:(UIApplication * _Nonnull)application
 continueUserActivity:(NSUserActivity * _Nonnull)userActivity
-  restorationHandler:(void(^ _Nonnull)(NSArray<id<UIUserActivityRestoring>> * __nullable restorableObjects))restorationHandler;
+  restorationHandler:(void(^ _Nonnull)(NSArray<id<UIUserActivityRestoring>> * _Nonnull restorableObjects))restorationHandler;
+
++ (void)setDelegate:(NSObject<CallKeepPushDelegate>* _Nullable)delegate;
 
 + (void)reportNewIncomingCall:(NSString * _Nonnull)uuidString
                        handle:(NSString * _Nonnull)handle
                    handleType:(NSString * _Nonnull)handleType
                      hasVideo:(BOOL)hasVideo
-          localizedCallerName:(NSString * _Nullable)localizedCallerName
+                   callerName:(NSString * _Nullable)callerName
                   fromPushKit:(BOOL)fromPushKit
                       payload:(NSDictionary * _Nullable)payload;
 
@@ -39,7 +60,7 @@ continueUserActivity:(NSUserActivity * _Nonnull)userActivity
                        handle:(NSString * _Nonnull)handle
                    handleType:(NSString * _Nonnull)handleType
                      hasVideo:(BOOL)hasVideo
-          localizedCallerName:(NSString * _Nullable)localizedCallerName
+                   callerName:(NSString * _Nullable)callerName
                   fromPushKit:(BOOL)fromPushKit
                       payload:(NSDictionary * _Nullable)payload
         withCompletionHandler:(void (^_Nullable)(void))completion;
