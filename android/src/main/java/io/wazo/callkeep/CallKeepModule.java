@@ -32,6 +32,7 @@ import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.telecom.CallAudioState;
 import android.telecom.Connection;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -539,20 +540,23 @@ public class CallKeepModule {
 
     
     private void setCurrentAudioRoute(String uuid, int route) {
-        Connection conn = VoiceConnectionService.getConnection(uuid);
-        if (conn == null) {
-            return;
-        }
+        // Connection conn = VoiceConnectionService.getConnection(uuid);
+        // if (conn == null) {
+        //     return;
+        // }
 
         switch (route) {
             case 1:
-                conn.setAudioRoute(CallAudioState.ROUTE_EARPIECE);
+                setCallAudio(uuid, CallAudioState.ROUTE_EARPIECE);
+                // conn.setAudioRoute(CallAudioState.ROUTE_EARPIECE);
                 break;
             case 2:
-                conn.setAudioRoute(CallAudioState.ROUTE_SPEAKER);
+                setCallAudio(uuid, CallAudioState.ROUTE_SPEAKER);
+                // conn.setAudioRoute(CallAudioState.ROUTE_SPEAKER);
                 break;
             case 3:
-                conn.setAudioRoute(CallAudioState.ROUTE_BLUETOOTH);
+                setCallAudio(uuid, CallAudioState.ROUTE_BLUETOOTH);
+                // conn.setAudioRoute(CallAudioState.ROUTE_BLUETOOTH);
                 break;
         }
     }
@@ -714,7 +718,7 @@ public class CallKeepModule {
         ComponentName cName = new ComponentName(context, VoiceConnectionService.class);
         String appName = this.getApplicationName(context);
 
-        handle = new PhoneAccountHandle(cName, appName);
+        accountHandle = new PhoneAccountHandle(cName, appName);
         telecomManager = (TelecomManager) context.getSystemService(Context.TELECOM_SERVICE);
     }
 

@@ -85,15 +85,15 @@ class FlutterCallkeep extends EventManager {
     Map<String, dynamic> options,
   ) async {
     final hasDefault = await _checkDefaultPhoneAccount();
-    if (hasDefault == true) {
-      final shouldOpenAccounts = await _alert(options);
-      if (shouldOpenAccounts) {
-        await _openPhoneAccounts();
-        return true;
-      }
-      return false;
-    }
-    return true;
+    // if (hasDefault == true) {
+    //   final shouldOpenAccounts = await _alert(options);
+    //   if (shouldOpenAccounts) {
+    //     await _openPhoneAccounts();
+    //     return true;
+    //   }
+    //   return false;
+    // }
+    return hasDefault ?? false;
   }
 
   Future<bool> _hasPhoneAccount() async {
@@ -369,11 +369,12 @@ class FlutterCallkeep extends EventManager {
     final hasPhoneAccount = await _hasPhoneAccount();
     if (hasPhoneAccount != false) return true;
 
-    final shouldOpenAccounts = await _alert(options);
-    if (shouldOpenAccounts) {
-      await _openPhoneAccounts();
-      return true;
-    }
+    // // final shouldOpenAccounts = await _alert(options);
+    // if (shouldOpenAccounts) {
+    //   await _openPhoneAccounts();
+    //   return true;
+    // }
+    
     return false;
   }
 
