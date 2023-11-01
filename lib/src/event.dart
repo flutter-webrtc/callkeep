@@ -83,7 +83,7 @@ class EventManager {
     }
     //    logger.warn("removing $eventType on $listener");
     if (!targets.remove(listener)) {
-      print('Failed to remove any listeners for EventType $eventType');
+      // print('Failed to remove any listeners for EventType $eventType');
     }
   }
 
