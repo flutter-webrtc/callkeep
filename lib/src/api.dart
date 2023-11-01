@@ -305,8 +305,8 @@ class FlutterCallkeep extends EventManager {
     String uuid,
     String callerName,
   ) async {
-    print(
-        'CallKeep.reportUpdatedCall is deprecated, use CallKeep.updateDisplay instead');
+    // print(
+    //     'CallKeep.reportUpdatedCall is deprecated, use CallKeep.updateDisplay instead');
 
     return isIOS
         ? await _channel
@@ -458,7 +458,7 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<void> eventListener(MethodCall call) async {
-    print('[CallKeep] INFO: received event "${call.method}" ${call.arguments}');
+    // print('[CallKeep] INFO: received event "${call.method}" ${call.arguments}');
     final data = call.arguments as Map<dynamic, dynamic>;
     switch (call.method) {
       case 'CallKeepDidReceiveStartCallAction':
