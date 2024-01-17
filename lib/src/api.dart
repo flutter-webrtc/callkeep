@@ -210,7 +210,7 @@ class FlutterCallkeep extends EventManager {
 
   Future<List<String>> activeCalls() async {
     var resp = await _channel
-        .invokeMethod<List<Object>?>('activeCalls', <String, dynamic>{});
+        .invokeMethod<List<Object?>?>('activeCalls', <String, dynamic>{});
     if (resp != null) {
       var uuids = <String>[];
       resp.forEach((element) {
