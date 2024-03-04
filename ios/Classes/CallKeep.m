@@ -713,7 +713,8 @@ static NSObject<CallKeepPushDelegate>* _delegate;
 #endif
     
     AVAudioSession* audioSession = [AVAudioSession sharedInstance];
-    [audioSession setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:AVAudioSessionCategoryOptionAllowBluetooth error:nil];
+    AVAudioSessionCategoryOptions options = AVAudioSessionCategoryOptionMixWithOthers | AVAudioSessionCategoryOptionDuckOthers | AVAudioSessionCategoryOptionAllowAirPlay | AVAudioSessionCategoryOptionAllowBluetooth | AVAudioSessionCategoryOptionAllowBluetoothA2DP;
+    [audioSession setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:options error:nil];
     
     [audioSession setMode:AVAudioSessionModeVoiceChat error:nil];
     
