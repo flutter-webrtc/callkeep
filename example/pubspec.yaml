@@ -7,7 +7,7 @@ version: 0.1.1
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 environment:
-  sdk: ">=2.2.2 <3.0.0"
+  sdk: ">=2.12.2 <3.19.0"
 
 dependencies:
   callkeep:
@@ -18,10 +18,11 @@ dependencies:
     # the parent directory to use the current plugin's version.
     path: ../
 
-  firebase_messaging: ^7.0.0
+  firebase_messaging: ^14.9.2
   flutter:
     sdk: flutter
-  uuid: ^3.0.7
+  logger: ^2.0.2+1
+  uuid: ^4.4.0
 
 dev_dependencies:
   flutter_lints: ^2.0.1
