@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
 import 'package:callkeep/callkeep.dart';
+import 'package:logger/logger.dart';
 import 'package:uuid/uuid.dart';
 
 /// For fcm background message handler.
@@ -26,30 +27,33 @@ bool _callKeepInited = false;
 }
 */
 
-Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
-  print('backgroundMessage: message => ${message.toString()}');
-  var payload = message['data'];
-  var callerId = payload['caller_id'] as String;
-  var callerName = payload['caller_name'] as String;
-  var uuid = payload['uuid'] as String;
-  var hasVideo = payload['has_video'] == "true";
+Future<dynamic> myBackgroundMessageHandler(RemoteMessage message) {
+  Logger logger = Logger();
+  logger.d('backgroundMessage: message => ${message.toString()}');
 
-  final callUUID = uuid ?? Uuid().v4();
+  // Handle data message
+  var data = message.data;
+  var callerId = data['caller_id'] ?? message.senderId ?? "No Sender Id";
+  var callerName = data['caller_name'] as String;
+  var callUUID = data['uuid'] ?? const Uuid().v4();
+  var hasVideo = data['has_video'] == "true";
+
   _callKeep.on<CallKeepPerformAnswerCallAction>(
       (CallKeepPerformAnswerCallAction event) {
-    print(
+    logger.d(
         'backgroundMessage: CallKeepPerformAnswerCallAction ${event.callData.callUUID}');
     Timer(const Duration(seconds: 1), () {
-      print(
+      logger.d(
           '[setCurrentCallActive] $callUUID, callerId: $callerId, callerName: $callerName');
       _callKeep.setCurrentCallActive(callUUID);
     });
     //_callKeep.endCall(event.callUUID);
   });
 
-  _callKeep.on<CallKeepPerformEndCallAction>(
-      (CallKeepPerformEndCallAction event) {
-    print('backgroundMessage: CallKeepPerformEndCallAction ${event.callUUID}');
+  _callKeep
+      .on<CallKeepPerformEndCallAction>((CallKeepPerformEndCallAction event) {
+    logger
+        .d('backgroundMessage: CallKeepPerformEndCallAction ${event.callUUID}');
   });
   if (!_callKeepInited) {
     _callKeep.setup(
@@ -77,7 +81,7 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
     _callKeepInited = true;
   }
 
-  print('backgroundMessage: displayIncomingCall ($callerId)');
+  logger.d('backgroundMessage: displayIncomingCall ($callerId)');
   _callKeep.displayIncomingCall(
     callUUID,
     callerId,
@@ -95,22 +99,25 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) {
   if (message.containsKey('notification')) {
     // Handle notification message
     final dynamic notification = message['notification'];
-    print('notification => ${notification.toString()}');
+    logger.d('notification => ${notification.toString()}');
   }
 
   // Or do other work.
   */
-  return null;
+  return Future.value(null);
 }
 
 void main() {
-  runApp(MyApp());
+  Logger.level = Level.all;
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       title: 'Welcome to Flutter',
       debugShowCheckedModeBanner: false,
       home: HomePage(),
@@ -119,8 +126,10 @@ class MyApp extends StatelessWidget {
 }
 
 class HomePage extends StatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
+
   @override
-  _MyAppState createState() => _MyAppState();
+  MyAppState createState() => MyAppState();
 }
 
 class Call {
@@ -130,19 +139,21 @@ class Call {
   bool muted = false;
 }
 
-class _MyAppState extends State<HomePage> {
+class MyAppState extends State<HomePage> {
   final FlutterCallkeep _callKeep = FlutterCallkeep();
   Map<String, Call> calls = {};
-  String newUUID() => Uuid().v4();
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
+  String newUUID() => const Uuid().v4();
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  Logger logger = Logger();
 
-  void iOS_Permission() {
-    _firebaseMessaging.requestNotificationPermissions(
-        IosNotificationSettings(sound: true, badge: true, alert: true));
-    _firebaseMessaging.onIosSettingsRegistered
-        .listen((IosNotificationSettings settings) {
-      print('Settings registered: $settings');
-    });
+  void iOSPermission() async {
+    NotificationSettings settings = await _firebaseMessaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
+    logger.d('Settings registered: $settings');
   }
 
   void removeCall(String callUUID) {
@@ -153,73 +164,97 @@ class _MyAppState extends State<HomePage> {
 
   void setCallHeld(String callUUID, bool held) {
     setState(() {
-      calls[callUUID].held = held;
+      calls[callUUID]?.held = held;
     });
   }
 
   void setCallMuted(String callUUID, bool muted) {
     setState(() {
-      calls[callUUID].muted = muted;
+      calls[callUUID]?.muted = muted;
     });
   }
 
   Future<void> answerCall(CallKeepPerformAnswerCallAction event) async {
-    final String callUUID = event.callData.callUUID;
-    final String number = calls[callUUID].number;
-    print('[answerCall] $callUUID, number: $number');
+    final callUUID = event.callData.callUUID;
+    final number = calls[callUUID]?.number;
+    if (callUUID == null) {
+      logger.e("Tried to answer call but callUUID is null");
+      return;
+    }
+    logger.d('[answerCall] $callUUID, number: $number');
+
     Timer(const Duration(seconds: 1), () {
-      print('[setCurrentCallActive] $callUUID, number: $number');
+      logger.d('[setCurrentCallActive] $callUUID, number: $number');
       _callKeep.setCurrentCallActive(callUUID);
     });
   }
 
   Future<void> endCall(CallKeepPerformEndCallAction event) async {
-    print('endCall: ${event.callUUID}');
-    removeCall(event.callUUID);
+    final callUUID = event.callUUID;
+    if (callUUID == null) {
+      logger.e("Tried to endcall but callUUID is null");
+      return;
+    }
+    logger.d('[endCall] $callUUID');
+    removeCall(callUUID);
   }
 
   Future<void> didPerformDTMFAction(CallKeepDidPerformDTMFAction event) async {
-    print('[didPerformDTMFAction] ${event.callUUID}, digits: ${event.digits}');
+    logger
+        .d('[didPerformDTMFAction] ${event.callUUID}, digits: ${event.digits}');
   }
 
   Future<void> didReceiveStartCallAction(
     CallKeepDidReceiveStartCallAction event,
   ) async {
-    final call = event.callData;
-    if (call.handle == null) {
+    final callData = event.callData;
+    if (callData.handle == null) {
       // @TODO: sometime we receive `didReceiveStartCallAction` with handle` undefined`
       return;
     }
-    final String callUUID = call.callUUID ?? newUUID();
+    final String callUUID = callData.callUUID ?? newUUID();
+    final Call call = Call(callData.handle ?? "No Handle");
     setState(() {
-      calls[callUUID] = Call(call.handle);
+      calls[callUUID] = call;
     });
-    print('[didReceiveStartCallAction] $callUUID, number: ${call.handle}');
+    logger
+        .d('[didReceiveStartCallAction] $callUUID, number: ${callData.handle}');
 
-    _callKeep.startCall(callUUID, call.handle, call.handle);
+    _callKeep.startCall(callUUID, call.number, call.number);
 
     Timer(const Duration(seconds: 1), () {
-      print('[setCurrentCallActive] $callUUID, number: ${call.handle}');
+      logger.d('[setCurrentCallActive] $callUUID, number: ${callData.handle}');
       _callKeep.setCurrentCallActive(callUUID);
     });
   }
 
   Future<void> didPerformSetMutedCallAction(
       CallKeepDidPerformSetMutedCallAction event) async {
-    final String number = calls[event.callUUID].number;
-    print(
-        '[didPerformSetMutedCallAction] ${event.callUUID}, number: $number (${event.muted})');
+    final callUUID = event.callUUID;
+    if (callUUID == null) {
+      logger.e("Tried to mute call but callUUID is null");
+      return;
+    }
+    final number = calls[callUUID]?.number ?? "No Number";
+    final muted = event.muted ?? false;
+    logger.d(
+        '[didPerformSetMutedCallAction] $callUUID, number: $number ($muted)');
 
-    setCallMuted(event.callUUID, event.muted);
+    setCallMuted(callUUID, muted);
   }
 
   Future<void> didToggleHoldCallAction(
       CallKeepDidToggleHoldAction event) async {
-    final String number = calls[event.callUUID].number;
-    print(
-        '[didToggleHoldCallAction] ${event.callUUID}, number: $number (${event.hold})');
+    final callUUID = event.callUUID;
+    if (callUUID == null) {
+      logger.e("Tried to hold call but callUUID is null");
+      return;
+    }
+    final number = calls[callUUID]?.number ?? "No Number";
+    final hold = event.hold ?? false;
+    logger.d('[didToggleHoldCallAction] $callUUID, number: $number ($hold)');
 
-    setCallHeld(event.callUUID, event.hold);
+    setCallHeld(callUUID, hold);
   }
 
   Future<void> hangup(String callUUID) async {
@@ -229,20 +264,20 @@ class _MyAppState extends State<HomePage> {
 
   Future<void> setOnHold(String callUUID, bool held) async {
     _callKeep.setOnHold(callUUID, held);
-    final String handle = calls[callUUID].number;
-    print('[setOnHold: $held] $callUUID, number: $handle');
+    final String handle = calls[callUUID]?.number ?? "No Number";
+    logger.d('[setOnHold: $held] $callUUID, number: $handle');
     setCallHeld(callUUID, held);
   }
 
   Future<void> setMutedCall(String callUUID, bool muted) async {
     _callKeep.setMutedCall(callUUID, muted);
-    final String handle = calls[callUUID].number;
-    print('[setMutedCall: $muted] $callUUID, number: $handle');
+    final String handle = calls[callUUID]?.number ?? "No Number";
+    logger.d('[setMutedCall: $muted] $callUUID, number: $handle');
     setCallMuted(callUUID, muted);
   }
 
   Future<void> updateDisplay(String callUUID) async {
-    final String number = calls[callUUID].number;
+    final String number = calls[callUUID]?.number ?? "No Number";
     // Workaround because Android doesn't display well displayName, se we have to switch ...
     if (isIOS) {
       _callKeep.updateDisplay(callUUID, callerName: 'New Name', handle: number);
@@ -250,7 +285,7 @@ class _MyAppState extends State<HomePage> {
       _callKeep.updateDisplay(callUUID, callerName: number, handle: 'New Name');
     }
 
-    print('[updateDisplay: $number] $callUUID');
+    logger.d('[updateDisplay: $number] $callUUID');
   }
 
   Future<void> displayIncomingCallDelayed(String number) async {
@@ -264,7 +299,7 @@ class _MyAppState extends State<HomePage> {
     setState(() {
       calls[callUUID] = Call(number);
     });
-    print('Display incoming call now');
+    logger.d('Display incoming call now');
     final bool hasPhoneAccount = await _callKeep.hasPhoneAccount();
     if (!hasPhoneAccount) {
       await _callKeep.hasDefaultPhoneAccount(context, <String, dynamic>{
@@ -282,22 +317,26 @@ class _MyAppState extends State<HomePage> {
       });
     }
 
-    print('[displayIncomingCall] $callUUID number: $number');
+    logger.d('[displayIncomingCall] $callUUID number: $number');
     _callKeep.displayIncomingCall(callUUID, number,
         handleType: 'number', hasVideo: false);
   }
 
   void didDisplayIncomingCall(CallKeepDidDisplayIncomingCall event) {
-    var callUUID = event.callData.callUUID;
-    var number = event.callData.handle;
-    print('[displayIncomingCall] $callUUID number: $number');
+    final callUUID = event.callData.callUUID;
+    final number = event.callData.handle ?? "No Number";
+    if (callUUID == null) {
+      logger.e("Tried to diplay incoming call but callUUID is null");
+      return;
+    }
+    logger.d('[displayIncomingCall] $callUUID number: $number');
     setState(() {
       calls[callUUID] = Call(number);
     });
   }
 
   void onPushKitToken(CallKeepPushKitToken event) {
-    print('[onPushKitToken] token => ${event.token}');
+    logger.d('[onPushKitToken] token => ${event.token}');
   }
 
   @override
@@ -332,44 +371,41 @@ class _MyAppState extends State<HomePage> {
       },
     });
 
-    if (Platform.isAndroid) {
-      //if (isIOS) iOS_Permission();
-      //  _firebaseMessaging.requestNotificationPermissions();
+    if (Platform.isIOS) iOSPermission();
 
+    if (Platform.isAndroid) {
       _firebaseMessaging.getToken().then((token) {
-        print('[FCM] token => ' + token);
+        logger.d('[FCM] token => $token');
       });
 
-      _firebaseMessaging.configure(
-        onMessage: (Map<String, dynamic> message) async {
-          print('onMessage: $message');
-          if (message.containsKey('data')) {
-            // Handle data message
-            var payload = message['data'];
-            var callerId = payload['caller_id'] as String;
-            var callerName = payload['caller_name'] as String;
-            var uuid = payload['uuid'] as String;
-            var hasVideo = payload['has_video'] == "true";
-            final callUUID = uuid ?? Uuid().v4();
-            setState(() {
-              calls[callUUID] = Call(callerId);
-            });
-            _callKeep.displayIncomingCall(
-              callUUID,
-              callerId,
-              callerName: callerName,
-              hasVideo: hasVideo,
-            );
-          }
-        },
-        onBackgroundMessage: myBackgroundMessageHandler,
-        onLaunch: (Map<String, dynamic> message) async {
-          print('onLaunch: $message');
-        },
-        onResume: (Map<String, dynamic> message) async {
-          print('onResume: $message');
-        },
-      );
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print('Got a message whilst in the foreground!');
+        print('Message data: ${message.data}');
+        logger.d('onMessage: $message');
+
+        // Handle data message
+        var data = message.data;
+        var callerId = data['caller_id'] ?? message.senderId ?? "No Sender Id";
+        var callerName = data['caller_name'] as String;
+        var callUUID = data['uuid'] ?? const Uuid().v4();
+        var hasVideo = data['has_video'] == "true";
+
+        setState(() {
+          calls[callUUID] = Call(callerId);
+        });
+        _callKeep.displayIncomingCall(
+          callUUID,
+          callerId,
+          callerName: callerName,
+          hasVideo: hasVideo,
+        );
+
+        if (message.notification != null) {
+          print(
+              'Message also contained a notification: ${message.notification}');
+        }
+      });
+      FirebaseMessaging.onBackgroundMessage(myBackgroundMessageHandler);
     }
   }
 

@@ -8,13 +8,15 @@ environment:
   flutter: ">=1.22.0"
 
 dependencies:
+  firebase_messaging: ^14.9.2
   flutter:
     sdk: flutter
+  logger: ^2.0.2+1
+  uuid: ^4.4.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
   pedantic: ^1.9.0
 
 flutter:

@@ -5,13 +5,13 @@ import 'package:flutter/material.dart'
     show
         AlertDialog,
         BuildContext,
-        FlatButton,
         Navigator,
         Text,
         TextButton,
         Widget,
         showDialog;
 import 'package:flutter/services.dart';
+import 'package:logger/logger.dart';
 
 import 'actions.dart';
 import 'event.dart';
@@ -31,6 +31,7 @@ class FlutterCallkeep extends EventManager {
   static const MethodChannel _channel = MethodChannel('FlutterCallKeep.Method');
   static const MethodChannel _event = MethodChannel('FlutterCallKeep.Event');
   BuildContext? _context;
+  Logger logger = Logger();
 
   Future<void> setup(
     BuildContext? context,
@@ -316,7 +317,7 @@ class FlutterCallkeep extends EventManager {
     String uuid,
     String callerName,
   ) async {
-    print(
+    logger.d(
         'CallKeep.reportUpdatedCall is deprecated, use CallKeep.updateDisplay instead');
 
     return isIOS
@@ -463,7 +464,8 @@ class FlutterCallkeep extends EventManager {
   }
 
   Future<void> eventListener(MethodCall call) async {
-    print('[CallKeep] INFO: received event "${call.method}" ${call.arguments}');
+    logger.d(
+        '[CallKeep] INFO: received event "${call.method}" ${call.arguments}');
     final data = call.arguments as Map<dynamic, dynamic>;
     switch (call.method) {
       case 'CallKeepDidReceiveStartCallAction':
