@@ -57,34 +57,32 @@ Future<dynamic> myBackgroundMessageHandler(RemoteMessage message) {
   });
   if (!_callKeepInited) {
     _callKeep.setup(
-        null,
-        <String, dynamic>{
-          'ios': {
-            'appName': 'CallKeepDemo',
-          },
-          'android': {
-            'alertTitle': 'Permissions required',
-            'alertDescription':
-                'This application needs to access your phone accounts',
-            'cancelButton': 'Cancel',
-            'okButton': 'ok',
-            'foregroundService': {
-              'channelId': 'com.company.my',
-              'channelName': 'Foreground service for my app',
-              'notificationTitle': 'My app is running on background',
-              'notificationIcon':
-                  'Path to the resource icon of the notification',
-            },
+      showAlertDialog: null,
+      options: <String, dynamic>{
+        'ios': {
+          'appName': 'CallKeepDemo',
+        },
+        'android': {
+          'additionalPermissions': [
+            'android.permission.CALL_PHONE',
+            'android.permission.READ_PHONE_NUMBERS'
+          ],
+          'foregroundService': {
+            'channelId': 'com.example.call-kit-test',
+            'channelName': 'callKitTest',
+            'notificationTitle': 'My app is running on background',
+            'notificationIcon': 'Path to the resource icon of the notification',
           },
         },
-        backgroundMode: true);
+      },
+    );
     _callKeepInited = true;
   }
 
   logger.d('backgroundMessage: displayIncomingCall ($callerId)');
   _callKeep.displayIncomingCall(
-    callUUID,
-    callerId,
+    uuid: callUUID,
+    handle: callerId,
     callerName: callerName,
     hasVideo: hasVideo,
   );
@@ -220,7 +218,8 @@ class MyAppState extends State<HomePage> {
     logger
         .d('[didReceiveStartCallAction] $callUUID, number: ${callData.handle}');
 
-    _callKeep.startCall(callUUID, call.number, call.number);
+    _callKeep.startCall(
+        uuid: callUUID, handle: call.number, callerName: call.number);
 
     Timer(const Duration(seconds: 1), () {
       logger.d('[setCurrentCallActive] $callUUID, number: ${callData.handle}');
@@ -263,14 +262,14 @@ class MyAppState extends State<HomePage> {
   }
 
   Future<void> setOnHold(String callUUID, bool held) async {
-    _callKeep.setOnHold(callUUID, held);
+    _callKeep.setOnHold(uuid: callUUID, shouldHold: held);
     final String handle = calls[callUUID]?.number ?? "No Number";
     logger.d('[setOnHold: $held] $callUUID, number: $handle');
     setCallHeld(callUUID, held);
   }
 
   Future<void> setMutedCall(String callUUID, bool muted) async {
-    _callKeep.setMutedCall(callUUID, muted);
+    _callKeep.setMutedCall(uuid: callUUID, shouldMute: muted);
     final String handle = calls[callUUID]?.number ?? "No Number";
     logger.d('[setMutedCall: $muted] $callUUID, number: $handle');
     setCallMuted(callUUID, muted);
@@ -280,9 +279,11 @@ class MyAppState extends State<HomePage> {
     final String number = calls[callUUID]?.number ?? "No Number";
     // Workaround because Android doesn't display well displayName, se we have to switch ...
     if (isIOS) {
-      _callKeep.updateDisplay(callUUID, callerName: 'New Name', handle: number);
+      _callKeep.updateDisplay(
+          uuid: callUUID, callerName: 'New Name', handle: number);
     } else {
-      _callKeep.updateDisplay(callUUID, callerName: number, handle: 'New Name');
+      _callKeep.updateDisplay(
+          uuid: callUUID, callerName: number, handle: 'New Name');
     }
 
     logger.d('[updateDisplay: $number] $callUUID');
@@ -302,7 +303,7 @@ class MyAppState extends State<HomePage> {
     logger.d('Display incoming call now');
     final bool hasPhoneAccount = await _callKeep.hasPhoneAccount();
     if (!hasPhoneAccount) {
-      await _callKeep.hasDefaultPhoneAccount(context, <String, dynamic>{
+      await _callKeep.hasDefaultPhoneAccount(<String, dynamic>{
         'alertTitle': 'Permissions required',
         'alertDescription':
             'This application needs to access your phone accounts',
@@ -318,8 +319,8 @@ class MyAppState extends State<HomePage> {
     }
 
     logger.d('[displayIncomingCall] $callUUID number: $number');
-    _callKeep.displayIncomingCall(callUUID, number,
-        handleType: 'number', hasVideo: false);
+    _callKeep.displayIncomingCall(
+        uuid: callUUID, handle: number, handleType: 'number', hasVideo: false);
   }
 
   void didDisplayIncomingCall(CallKeepDidDisplayIncomingCall event) {
@@ -347,29 +348,51 @@ class MyAppState extends State<HomePage> {
     _callKeep.on<CallKeepDidPerformDTMFAction>(didPerformDTMFAction);
     _callKeep.on<CallKeepDidReceiveStartCallAction>(didReceiveStartCallAction);
     _callKeep.on<CallKeepDidToggleHoldAction>(didToggleHoldCallAction);
-    _callKeep.on<CallKeepDidPerformSetMutedCallAction>(didPerformSetMutedCallAction);
+    _callKeep
+        .on<CallKeepDidPerformSetMutedCallAction>(didPerformSetMutedCallAction);
     _callKeep.on<CallKeepPerformEndCallAction>(endCall);
     _callKeep.on<CallKeepPushKitToken>(onPushKitToken);
 
-    _callKeep.setup(context, <String, dynamic>{
-      'ios': {
-        'appName': 'CallKeepDemo',
-      },
-      'android': {
-        'alertTitle': 'Permissions required',
-        'alertDescription':
-            'This application needs to access your phone accounts',
-        'cancelButton': 'Cancel',
-        'okButton': 'ok',
-        'foregroundService': {
-          'channelId': 'com.company.my',
-          'channelName': 'Foreground service for my app',
-          'notificationId': 5005,
-          'notificationTitle': 'My app is running on background',
-          'notificationIcon': 'Path to the resource icon of the notification',
+    _callKeep.setup(
+      showAlertDialog: () => showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Permissions Required'),
+            content: const Text(
+                'This application needs to access your phone accounts'),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Cancel'),
+                onPressed: () => Navigator.of(context).pop(false),
+              ),
+              TextButton(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(true),
+              ),
+            ],
+          );
+        },
+      ).then((value) => value ?? false),
+      options: <String, dynamic>{
+        'ios': {
+          'appName': 'CallKeepDemo',
+        },
+        'android': {
+          'additionalPermissions': [
+            'android.permission.CALL_PHONE',
+            'android.permission.READ_PHONE_NUMBERS'
+          ],
+          'foregroundService': {
+            'channelId': 'com.example.call-kit-test',
+            'channelName': 'callKitTest',
+            'notificationTitle': 'My app is running on background',
+            'notificationIcon': 'Path to the resource icon of the notification',
+          },
         },
       },
-    });
+    );
 
     if (Platform.isIOS) iOSPermission();
 
@@ -394,8 +417,8 @@ class MyAppState extends State<HomePage> {
           calls[callUUID] = Call(callerId);
         });
         _callKeep.displayIncomingCall(
-          callUUID,
-          callerId,
+          uuid: callUUID,
+          handle: callerId,
           callerName: callerName,
           hasVideo: hasVideo,
         );

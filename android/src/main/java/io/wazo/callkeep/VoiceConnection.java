@@ -154,6 +154,7 @@ public class VoiceConnection extends Connection {
 
     private void onAnswered() {
         initCall();
+        setCurrent();
         sendCallRequestToActivity(ACTION_ANSWER_CALL, connectionData);
     }
 

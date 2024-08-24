@@ -77,14 +77,11 @@ class EventManager {
     });
   }
 
-  void remove<T extends EventType>(T eventType, ValueChanged<T> listener) {
-    final targets = listeners[eventType.runtimeType];
-    if (targets == null) {
-      return;
-    }
-    //    logger.warn("removing $eventType on $listener");
+  void remove<T extends EventType>(ValueChanged<T> listener) {
+    final targets = listeners[T];
+    if (targets == null) return;
     if (!targets.remove(listener)) {
-      logger.d('Failed to remove any listeners for EventType $eventType');
+      logger.d('Failed to remove any listeners for EventType $T');
     }
   }
 

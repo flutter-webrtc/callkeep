@@ -212,7 +212,6 @@ static NSObject<CallKeepPushDelegate>* _delegate;
 - (NSString *)createUUID {
     CFUUIDRef uuidObject = CFUUIDCreate(kCFAllocatorDefault);
     NSString *uuidStr = (NSString *)CFBridgingRelease(CFUUIDCreateString(kCFAllocatorDefault, uuidObject));
-    CFUUIDBytes bytes = CFUUIDGetUUIDBytes(uuidObject);
     CFRelease(uuidObject);
     return [uuidStr lowercaseString];
 }
