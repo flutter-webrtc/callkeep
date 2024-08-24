@@ -1,6 +1,13 @@
 # Changelog
 
 -----------------------------------------------
+[0.4.0] - 2023.08.24
+
+* [fix] Extracting UI responsibility, named parameters, android dismissal fix (#189).
+* [fix] make the Object nullable (#182)
+* [chore] Updated to the latest flutter and firebase messaging (#185)
+* [feat] Improve Android broadcasts and iOS delegate (#159)
+
 [0.3.3] - 2023.01.25
 
 * [fix] Remove as `type` to allow null assignment.
