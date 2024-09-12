@@ -227,6 +227,7 @@ static NSObject<CallKeepPushDelegate>* _delegate;
      "caller_name": "hello",
      "caller_id_type": "number",
      "has_video": false,
+     "end_call": false,
      }
      */
     
@@ -249,22 +250,27 @@ static NSObject<CallKeepPushDelegate>* _delegate;
     NSString *callerName = dic[@"caller_name"];
     BOOL hasVideo = [dic[@"has_video"] boolValue];
     NSString *callerIdType = dic[@"caller_id_type"];
+    BOOL endCall = [dic[@"end_call"] boolValue];
     
-    
-    if( uuid == nil) {
-        uuid = [self createUUID];
+    if( endCall ) {
+        [CallKeep endCallWithUUID:uuid reason:CXCallEndedReasonRemoteEnded];
+    } else {
+        if( uuid == nil) {
+            uuid = [self createUUID];
+        }
+        
+        NSLog(@"Got here %@.", [dic description]);
+        
+        [CallKeep reportNewIncomingCall:uuid
+                                handle:callerId
+                            handleType:callerIdType
+                            hasVideo:hasVideo
+                            callerName:callerName
+                            fromPushKit:YES
+                                payload:dic
+                withCompletionHandler:completion];
     }
     
-    NSLog(@"Got here %@.", [dic description]);
-    
-    [CallKeep reportNewIncomingCall:uuid
-                             handle:callerId
-                         handleType:callerIdType
-                           hasVideo:hasVideo
-                         callerName:callerName
-                        fromPushKit:YES
-                            payload:dic
-              withCompletionHandler:completion];
 }
 
 - (void)pushRegistry:(PKPushRegistry *)registry didReceiveIncomingPushWithPayload:(PKPushPayload *)payload forType:(NSString *)type {
