@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+
 import 'package:logger/web.dart';
 
 abstract class EventType {
