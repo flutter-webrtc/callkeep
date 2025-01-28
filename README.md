@@ -20,27 +20,51 @@ This allows you (for example) to answer calls when your device is locked even if
 Basic configuration. In Android a popup is displayed before starting requesting some permissions to work properly.
 
 ```dart
-final callSetup = <String, dynamic>{
-  'ios': {
-    'appName': 'CallKeepDemo',
-  },
-  'android': {
-    'alertTitle': 'Permissions required',
-    'alertDescription':
-    'This application needs to access your phone accounts',
-    'cancelButton': 'Cancel',
-    'okButton': 'ok',
-    // Required to get audio in background when using Android 11
-    'foregroundService': {
-      'channelId': 'com.company.my',
-      'channelName': 'Foreground service for my app',
-      'notificationTitle': 'My app is running on background',
-      'notificationIcon': 'mipmap/ic_notification_launcher',
-    },
-  },
-};
+callKeep.setup(
+    showAlertDialog:  () async {
+        final BuildContext context = navigatorKey.currentContext!;
 
-callKeep.setup(callSetup);
+        return await showDialog<bool>(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Permissions Required'),
+                  content: const Text(
+                      'This application needs to access your phone accounts'),
+                  actions: <Widget>[
+                    TextButton(
+                      child: const Text('Cancel'),
+                      onPressed: () => Navigator.of(context).pop(false),
+                    ),
+                    TextButton(
+                      child: const Text('OK'),
+                      onPressed: () => Navigator.of(context).pop(true),
+                    ),
+                  ],
+                );
+              },
+            ) ??
+            false;
+    },
+    options:<String, dynamic>{
+        'ios': {
+            'appName': 'CallKeepDemo',
+        },
+        'android': {
+            'additionalPermissions': [
+                'android.permission.CALL_PHONE',
+                'android.permission.READ_PHONE_NUMBERS'
+            ],
+            // Required to get audio in background when using Android 11
+            'foregroundService': {
+            'channelId': 'com.company.my',
+            'channelName': 'Foreground service for my app',
+            'notificationTitle': 'My app is running on background',
+            'notificationIcon': 'mipmap/ic_notification_launcher',
+        },
+    },
+});
 ```
 
 This configuration should be defined when your application wakes up, but keep in mind this alert will appear if you aren't granting the needed permissions yet.
