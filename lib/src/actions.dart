@@ -1,5 +1,4 @@
 import 'package:callkeep/src/call.dart';
-
 import 'event.dart';
 
 class CallKeepDidReceiveStartCallAction extends EventType {

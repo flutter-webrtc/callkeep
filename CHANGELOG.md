@@ -1,6 +1,11 @@
 # Changelog
 
 -----------------------------------------------
+
+[0.4.1] - 2025.02.03
+
+* [Fix] Updates firebase messaging and android gradle
+
 [0.4.0] - 2023.08.24
 
 * [fix] Extracting UI responsibility, named parameters, android dismissal fix (#189).
