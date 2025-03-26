@@ -33,6 +33,7 @@ dependencies {
 
 android {
     compileSdkVersion 30
+    namespace "com.github.cloudwebrtc.flutter_callkeep_example"
 
     lintOptions {
         disable 'InvalidPackage'

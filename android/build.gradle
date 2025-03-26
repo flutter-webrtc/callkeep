@@ -22,10 +22,11 @@ rootProject.allprojects {
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 31
-    namespace = "com.github.cloudwebrtc.flutter_callkeep"
+    compileSdkVersion 35
+    namespace 'com.github.cloudwebrtc.flutter_callkeep'
+
     defaultConfig {
-        minSdkVersion 23
+        minSdkVersion 21
     }
     lintOptions {
         disable 'InvalidPackage'
@@ -36,10 +37,9 @@ android {
     }
 }
 
-
 dependencies {
     implementation 'com.android.support:support-v4:28.0.0'
     implementation 'com.android.support:appcompat-v7:28.0.0'
-    implementation "com.android.support:support-core-utils:28.0.0"
+    implementation 'com.android.support:support-core-utils:28.0.0'
     implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.0.0'
 }
