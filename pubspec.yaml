@@ -11,8 +11,8 @@ dependencies:
   firebase_messaging: ^15.2.1
   flutter:
     sdk: flutter
-  logger: ^2.0.2+1
-  uuid: ^4.4.0
+  logger: ^2.5.0
+  uuid: ^4.5.1
 
 dev_dependencies:
   flutter_test:
